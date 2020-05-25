@@ -168,6 +168,31 @@ MPX_TEST("reset_fingers", {
     }
 })
 
+MPX_TEST("many_points", {
+
+    listenForGestureEvents(GestureEndMask);
+    int steps = 10000;
+    startGestureHelper({{0,0}, {steps,steps}}, 0, steps);
+    endGestureHelper(1);
+    auto* event = getNextGesture();
+    assert(event);
+})
+MPX_TEST("many_lines", {
+    listenForGestureEvents(GestureEndMask);
+    int steps = 10000;
+    startGestureHelper({{0,0}});
+    for(int i = 0 ;i < steps; i++) {
+        continueGesture(FAKE_DEVICE_ID, 0, {SCALE_FACTOR, 0});
+        continueGesture(FAKE_DEVICE_ID, 0, {SCALE_FACTOR, SCALE_FACTOR});
+        continueGesture(FAKE_DEVICE_ID, 0, {0, SCALE_FACTOR});
+        continueGesture(FAKE_DEVICE_ID, 0, {0, 0});
+    }
+    endGestureHelper(1);
+    auto* event = getNextGesture();
+    assert(event);
+})
+
+
 MPX_TEST("cancel_reset",{
     listenForGestureEvents(TouchCancelMask | GestureEndMask);
     startGestureHelper({{0,0}}, 0);

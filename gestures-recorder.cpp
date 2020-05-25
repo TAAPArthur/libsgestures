@@ -176,6 +176,8 @@ GestureDetail transformGestureDetail(const GestureDetail& detail, TransformMasks
 
 const char* getGestureTypeString(GestureType t) {
     switch(t) {
+        case GESTURE_NONE:
+            return "NONE";
         case GESTURE_NORTH_WEST:
             return "NORTH_WEST";
         case GESTURE_WEST:
@@ -198,7 +200,11 @@ const char* getGestureTypeString(GestureType t) {
             return "PINCH_OUT";
         case GESTURE_TAP:
             return "TAP";
+        case GESTURE_TOO_LARGE:
+            return "TOO_LARGE";
+
         default:
+        case GESTURE_UNKNOWN:
             return "UNKNOWN";
     }
 }
@@ -231,6 +237,10 @@ void detectSubLines(Gesture* gesture) {
         auto dir = getLineType(points[i - 1], points[i]);
         if(dir != GESTURE_TAP)
             if(lastDirection != dir){
+                if(info.size() == MAX_GESTURE_DETAIL_SIZE -1) {
+                    info.push_back(GESTURE_TOO_LARGE);
+                    break;
+                }
                 info.push_back(dir);
                 lastDirection = dir;
             }
