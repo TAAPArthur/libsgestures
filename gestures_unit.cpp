@@ -168,6 +168,21 @@ MPX_TEST("reset_fingers", {
     }
 })
 
+MPX_TEST("cancel_reset",{
+    listenForGestureEvents(TouchCancelMask | GestureEndMask);
+    startGestureHelper({{0,0}}, 0);
+    cancelGesture(FAKE_DEVICE_ID, 0);
+    startGestureHelper({{0,0}}, 1);
+    endGesture(FAKE_DEVICE_ID, 1);
+    auto* event = getNextGesture();
+    assert(event);
+    assert(event->flags.mask == TouchCancelMask );
+    event = getNextGesture();
+    assert(event);
+    assert(event->flags.mask == GestureEndMask);
+    assert(event->flags.fingers == 1);
+});
+
 GesturePoint lineDelta[] = {
     [0] = {},
     [1] = {},
@@ -214,12 +229,12 @@ MPX_TEST_ITER("validate_line_dir", LEN(gestureEventTuples) * 4, {
     bool cancel = _i % 4 > 2;
     auto& values = gestureEventTuples[i];
     assert(fingers);
-    for(int n = 0; n < fingers; n++)
-        startGestureHelper(values.points, n);
     if(cancel) {
         startGestureHelper(values.points, -1);
         cancelGesture(FAKE_DEVICE_ID, -1);
     }
+    for(int n = 0; n < fingers; n++)
+        startGestureHelper(values.points, n);
     endGestureHelper(fingers);
     auto event = getNextGesture();
     assert(event);

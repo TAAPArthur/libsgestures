@@ -111,14 +111,11 @@ static int finishGesture(Gesture*gesture) {
 }
 
 static void removeGesture(Gesture*gesture){
-    if(!gesture->finished){
-        for(Gesture* node = &gesture->parent->root; node->next; node = node->next){
-            if(node->next == gesture) {
-                node->next = gesture->next;
-                gesture->parent->activeCount--;
-                delete gesture;
-                return;
-            }
+    for(Gesture* node = &gesture->parent->root; node->next; node = node->next){
+        if(node->next == gesture) {
+            node->next = gesture->next;
+            delete gesture;
+            return;
         }
     }
     assert(0);
@@ -393,7 +390,11 @@ void cancelGesture(TouchEvent event) {
     TouchID id = generateTouchID(event.id, event.seat);
     Gesture* gesture = findGesture(id);
     if(gesture) {
-        removeGesture(gesture);
+        enqueueEvent(generateGestureEvent(gesture, TouchCancelMask, event.time));
+        if(gesture->parent->activeCount == 1)
+            removeGroup(gesture->parent);
+        else
+            removeGesture(gesture);
     }
 }
 
