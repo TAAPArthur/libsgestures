@@ -1,9 +1,10 @@
 #include <assert.h>
 #include <math.h>
+#include <stdlib.h>
 
-#include "gestures.h"
-#include "gestures-helper.h"
+#include "event.h"
 #include "gestures-private.h"
+#include "touch.h"
 
 #define SQUARE(X) ((X)*(X))
 #define SQ_DIST(P1,P2) SQUARE(P1.x-P2.x)+SQUARE(P1.y-P2.y)
@@ -11,43 +12,77 @@
 /// Used to determine if a line as a positive, 0 or negative slope
 #define SIGN_THRESHOLD(X) ((X)>.5?1:(X)>=-.5?0:-1)
 
+GestureType getLineType(GesturePoint start, GesturePoint end) {
+    double dx = end.x - start.x, dy = end.y - start.y;
+    double sum = sqrt(SQUARE(dx) + SQUARE(dy));
+    return (GestureType)((((SIGN_THRESHOLD(dx / sum) + 1) << 2) | (SIGN_THRESHOLD(dy / sum) + 1)) + GESTURE_NORTH_WEST );
+}
+
 struct GestureGroup;
-struct Gesture {
-    Gesture* next;
-    GestureGroup* parent;
+typedef struct Gesture {
+    struct Gesture* next;
+    struct GestureGroup* parent;
     TouchID id;
     bool finished;
-    std::vector<GesturePoint> points;
     GestureDetail info;
+    GesturePoint firstPoint;
+    GesturePoint firstPixelPoint;
     GesturePoint lastPoint;
     GesturePoint lastPixelPoint;
+    GestureType lastDir;
+    int numPoints;
     uint32_t start;
     GestureFlags flags;
-    std::vector<GesturePoint>& getGesturePoints() {return points;}
-    bool addGesturePoint(GesturePoint point, bool first = 0);
-};
+    bool truncated;
+}Gesture ;
 
-bool Gesture::addGesturePoint(GesturePoint point, bool first) {
+static inline void addGestureType(GestureDetail* detail, GestureType type) {
+    detail->detail[getNumOfTypes(*detail)] = type;
+}
+
+static inline void setGestureType(GestureDetail* detail, GestureType type) {
+    assert(getNumOfTypes(*detail) == 0);
+    detail->detail[0] = type;
+}
+
+
+
+static inline bool addGesturePoint(Gesture* g, GesturePoint point,GesturePoint pixelPoint, bool first) {
     if(!first) {
-        GesturePoint lastPoint = getGesturePoints().back();
-        auto distance = SQ_DIST(lastPoint, point);
+        GesturePoint lastPoint = g->lastPoint;
+        uint32_t distance = SQ_DIST(lastPoint, point);
         if(distance < THRESHOLD_SQ)
             return 0;
-        flags.totalSqDistance = flags.totalSqDistance + distance;
+        g->flags.totalSqDistance = g->flags.totalSqDistance + distance;
+
+        GestureType dir = getLineType(g->lastPoint, point);
+
+        if(dir != g->lastDir) {
+            if(getNumOfTypes(g->info) == MAX_GESTURE_DETAIL_SIZE){
+                g->truncated = true;
+                return 0;
+            }
+            addGestureType(&g->info, dir);
+            g->lastDir = dir;
+
+        }
     }
-    getGesturePoints().push_back(point);
+
+    g->numPoints++;
+    g->lastPoint = point;
+    g->lastPixelPoint = pixelPoint;
     return 1;
 }
 
-struct GestureGroup {
-    GestureGroup* next;
+typedef struct GestureGroup {
+    struct GestureGroup* next;
     GestureGroupID id;
     Gesture root;
-    int activeCount = 0;
-    int finishedCount = 0;
-    std::string sysName = "";
-    std::string name = "";
-};
+    int activeCount ;
+    int finishedCount ;
+    char sysName[DEVICE_NAME_LEN];
+    char name[DEVICE_NAME_LEN];
+}GestureGroup ;
 static GestureGroup root;
 
 ProductID __attribute__((weak)) generateIDHighBits(ProductID id __attribute__((unused)), GesturePoint startingGesturePoint __attribute__((unused))) {
@@ -62,12 +97,11 @@ static TouchID generateTouchID(ProductID id, uint32_t seat) {
     return ((uint64_t)id) << 32L | seat;
 }
 
-static GestureGroup* addGroup (GestureGroupID id, std::string sysName, std::string name) {
-    GestureGroup* newNode = new GestureGroup{
-        .id = id,
-        .sysName = sysName,
-        .name = name,
-    };
+static GestureGroup* addGroup (GestureGroupID id, const char* sysName, const char* name) {
+    GestureGroup* newNode = calloc(1, sizeof(GestureGroup));
+    newNode->id = id;
+    strcpy(newNode->sysName, sysName);
+    strcpy(newNode->name, name);
     newNode->next = root.next;
     root.next = newNode;
     return newNode;
@@ -80,25 +114,25 @@ static void removeGroup (GestureGroup*group) {
             node->next = group->next;
             for(Gesture* gesture = group->root.next; gesture; ) {
                 Gesture*temp = gesture->next;
-                delete gesture;
+                free(gesture);
                 gesture = temp;
             }
-            delete group;
+            free(group);
         }
 }
 
 static Gesture* createGesture(GestureGroup*group, TouchEvent event){
 
     TouchID id = generateTouchID(event.id, event.seat);
-    Gesture* gesture = new Gesture();
+    Gesture* gesture = calloc(1, sizeof(Gesture));
     gesture->id = id;
     gesture->parent = group;
     gesture->next=group->root.next;
     group->root.next= gesture;
-    gesture->lastPoint = event.point;
-    gesture->lastPixelPoint = event.pointPixel;
+    gesture->firstPoint = event.point;
+    gesture->firstPixelPoint = event.pointPixel;
     gesture->start = event.time;
-    gesture->addGesturePoint(event.point, 1);
+    addGesturePoint(gesture, event.point, event.pointPixel, 1);
 
     group->activeCount++;
     return gesture;
@@ -114,7 +148,7 @@ static void removeGesture(Gesture*gesture){
     for(Gesture* node = &gesture->parent->root; node->next; node = node->next){
         if(node->next == gesture) {
             node->next = gesture->next;
-            delete gesture;
+            free(gesture);
             return;
         }
     }
@@ -164,16 +198,33 @@ GestureType getRot270Direction(GestureType d) {
     return getRot90Direction(getOppositeDirection(d));
 }
 
-GestureDetail transformGestureDetail(const GestureDetail& detail, TransformMasks mask) {
+GestureDetail transformGestureDetail(const GestureDetail detail, TransformMasks mask) {
     if(mask) {
         GestureDetail mirror = {};
-        for(int i = 0; i< detail.size(); i++)
-            mirror.push_back(getReflection(mask, detail[i]));
-        return GestureDetail(mirror);
+        for(int i = 0; i< getNumOfTypes(detail); i++)
+            addGestureType(&mirror, getReflection(mask, getGestureType(detail, i)));
+        return mirror;
     }
     return detail;
 }
 
+const char* getGestureMaskString(GestureMask mask) {
+    switch(mask) {
+        case GestureEndMask:
+            return "GestureEndMask";
+        case TouchEndMask:
+            return "TouchEndMask";
+        case TouchStartMask:
+            return "TouchStartMask";
+        case TouchHoldMask:
+            return "TouchHoldMask";
+        case TouchMotionMask:
+            return "TouchMotionMask";
+        case TouchCancelMask:
+            return "TouchCancelMask";
+    }
+    return "UNKNOWN";
+}
 const char* getGestureTypeString(GestureType t) {
     switch(t) {
         case GESTURE_NONE:
@@ -208,67 +259,29 @@ const char* getGestureTypeString(GestureType t) {
             return "UNKNOWN";
     }
 }
-static double getRSquared(const std::vector<GesturePoint> points, int start = 0, int num = 0) {
-    double sumX = 0, sumY = 0, sumXY = 0;
-    double sumX2 = 0, sumY2 = 0;
-    if(!num)
-        num = points.size() - start;
-    for(int i = start; i < num; i++) {
-        sumX += points[i].x;
-        sumY += points[i].y;
-        sumXY += points[i].x * points[i].y;
-        sumX2 += SQUARE(points[i].x);
-        sumY2 += SQUARE(points[i].y);
-    }
-    double r2 = (1e-6 + SQUARE(num * sumXY - sumX * sumY)) / (1e-6 + (num * sumX2 - SQUARE(sumX)) * (num * sumY2 - SQUARE(
-                    sumY)));
-    return r2;
-}
-GestureType getLineType(GesturePoint start, GesturePoint end) {
-    double dx = end.x - start.x, dy = end.y - start.y;
-    double sum = sqrt(SQUARE(dx) + SQUARE(dy));
-    return (GestureType)((((SIGN_THRESHOLD(dx / sum) + 1) << 2) | (SIGN_THRESHOLD(dy / sum) + 1)) + GESTURE_NORTH_WEST );
-}
-void detectSubLines(Gesture* gesture) {
-    auto& info = gesture->info;
-    std::vector<GesturePoint>& points = gesture->points;
-    GestureType lastDirection = GESTURE_TAP;
-    for(uint32_t i = 1; i < points.size(); i++) {
-        auto dir = getLineType(points[i - 1], points[i]);
-        if(dir != GESTURE_TAP)
-            if(lastDirection != dir){
-                if(info.size() == MAX_GESTURE_DETAIL_SIZE -1) {
-                    info.push_back(GESTURE_TOO_LARGE);
-                    break;
-                }
-                info.push_back(dir);
-                lastDirection = dir;
-            }
-    }
-}
 
 bool generatePinchEvent(GestureEvent* gestureEvent, GestureGroup* group) {
     if(gestureEvent->flags.fingers > 1 && gestureEvent->flags.avgSqDisplacement > THRESHOLD_SQ) {
         GesturePoint avgEnd = {0, 0};
         GesturePoint avgStart = {0, 0};
         for(Gesture* gesture = group->root.next; gesture; gesture = gesture->next){
-            avgEnd += gesture->getGesturePoints().back();
-            avgStart += gesture->getGesturePoints()[0];
+            ADD_POINT(avgStart,gesture->firstPoint);
+            ADD_POINT(avgEnd,gesture->lastPoint);
         }
-        avgEnd /= gestureEvent->flags.fingers;
-        avgStart /= gestureEvent->flags.fingers;
+        DIVIDE_POINT(avgEnd, gestureEvent->flags.fingers);
+        DIVIDE_POINT(avgStart, gestureEvent->flags.fingers);
         double avgStartDis = 0;
         double avgEndDis = 0;
         for(Gesture* gesture = group->root.next; gesture; gesture = gesture->next){
-            avgEndDis += SQ_DIST(gesture->getGesturePoints().back(), avgEnd);;
-            avgStartDis += SQ_DIST(gesture->getGesturePoints()[0], avgStart);;
+            avgEndDis += SQ_DIST(gesture->lastPoint, avgEnd);;
+            avgStartDis += SQ_DIST(gesture->firstPoint, avgStart);;
         }
         avgEndDis /= gestureEvent->flags.fingers;
         avgStartDis /=  gestureEvent->flags.fingers;
         if(avgStartDis < PINCH_THRESHOLD && avgEndDis > PINCH_THRESHOLD)
-            gestureEvent->detail = {GESTURE_PINCH_OUT};
+            setGestureType(&gestureEvent->detail,  GESTURE_PINCH_OUT);
         else if(avgStartDis > PINCH_THRESHOLD && avgEndDis < PINCH_THRESHOLD)
-            gestureEvent->detail = {GESTURE_PINCH};
+            setGestureType(&gestureEvent->detail,  GESTURE_PINCH);
         else return 0;
         return 1;
     }
@@ -282,19 +295,19 @@ bool setReflectionMask(GestureEvent* gestureEvent, GestureGroup* group) {
     uint32_t reflectionCounts[LEN(reflectionMasks)] = {0};
 
         for(Gesture* node= gesture; node; node = node->next)
-            if(node->info.size() != gesture->info.size()){
+            if(getNumOfTypes(node->info) != getNumOfTypes(gesture->info)){
                 break;
             }
-            else if(node->info == gesture->info){
+            else if(areDetailsEqual(node->info, gesture->info)){
                 sameCount++;
             }
             else {
-                for(auto i = 0; i < gesture->info.size(); i++) {
-                    reflectionCounts[0] += getOppositeDirection(gesture->info[i]) == node->info[i];
-                    reflectionCounts[1] += getMirroredXDirection(gesture->info[i]) == node->info[i];
-                    reflectionCounts[2] += getMirroredYDirection(gesture->info[i]) == node->info[i];
-                    reflectionCounts[3] += getRot90Direction(gesture->info[i]) == node->info[i] ||
-                        getRot270Direction(gesture->info[i]) == node->info[i];
+                for(int i = 0; i < getNumOfTypes(gesture->info); i++) {
+                    reflectionCounts[0] += getOppositeDirection(getGestureType(gesture->info, i)) == getGestureType(node->info, i);
+                    reflectionCounts[1] += getMirroredXDirection(getGestureType(gesture->info, i)) == getGestureType(node->info, i);
+                    reflectionCounts[2] += getMirroredYDirection(getGestureType(gesture->info, i)) == getGestureType(node->info, i);
+                    reflectionCounts[3] += getRot90Direction(getGestureType(gesture->info, i)) == getGestureType(node->info, i) ||
+                        getRot270Direction(getGestureType(gesture->info, i)) == getGestureType(node->info, i);
                 }
             }
     if(sameCount == gestureEvent->flags.fingers) {
@@ -302,7 +315,7 @@ bool setReflectionMask(GestureEvent* gestureEvent, GestureGroup* group) {
         return 1;
     }
     for(uint32_t i = 0; i < LEN(reflectionMasks); i++) {
-        if(sameCount + reflectionCounts[i] / gesture->info.size() == gestureEvent->flags.fingers) {
+        if(sameCount + reflectionCounts[i] / getNumOfTypes(gesture->info) == gestureEvent->flags.fingers) {
             gestureEvent->flags.reflectionMask = reflectionMasks[i];
             gestureEvent->detail = gesture->info;
             return 1;
@@ -311,11 +324,10 @@ bool setReflectionMask(GestureEvent* gestureEvent, GestureGroup* group) {
     return 0;
 }
 void setFlags(Gesture* g, GestureEvent* event) {
-    g->flags.avgSqDisplacement = g->getGesturePoints().size() > 1 ?
-        SQ_DIST(g->getGesturePoints()[g->getGesturePoints().size() - 2], g->getGesturePoints().back()) :
-        0;
+    g->flags.avgSqDisplacement = SQ_DIST(g->firstPoint, g->lastPoint);
     g->flags.avgSqDistance = g->flags.totalSqDistance;
     g->flags.duration = event->time - g->start;
+
     event->flags.totalSqDistance = g->flags.totalSqDistance;
     event->flags.avgSqDisplacement  = g->flags.avgSqDisplacement;
     event->flags.avgSqDistance = g->flags.avgSqDistance;
@@ -336,43 +348,48 @@ void combineFlags(GestureGroup* group, GestureEvent* event) {
     event->flags.avgSqDistance /= event->flags.fingers;
     event->flags.duration = event->time - minStartTime;
 }
+
+static uint32_t gestureEventSeqCounter;
 GestureEvent* generateGestureEvent(Gesture* g, uint32_t mask, uint32_t time) {
     assert(g);
     assert(g->parent);
     GestureGroup* group = g->parent;
     assert(group);
-    GestureEvent* gestureEvent = new GestureEvent({
+
+    GestureEvent* gestureEvent = malloc(sizeof(GestureEvent));
+    *gestureEvent = (GestureEvent) {
+        .seq = ++gestureEventSeqCounter,
         .id = group->id,
         .time = time,
         .endPoint = g->lastPoint,
         .endPixelPoint = g->lastPixelPoint,
-    });
-    gestureEvent->flags.mask = mask;
-    gestureEvent->flags.fingers = group->activeCount + group->finishedCount;
+        .flags = {
+            .mask = mask,
+            .count = 1,
+            .fingers = group->activeCount + group->finishedCount
+        }
+    };
 
     if(mask == GestureEndMask) {
         combineFlags(group, gestureEvent);
         if(setReflectionMask(gestureEvent, group)) {}
         else if(generatePinchEvent(gestureEvent, group)) {}
         else {
-            gestureEvent->detail = {GESTURE_UNKNOWN};
+            setGestureType(&gestureEvent->detail, GESTURE_UNKNOWN);
         }
         return gestureEvent;
     }
     else
         setFlags(g, gestureEvent);
-    if(mask == TouchEndMask) {
-        assert(g->info.size());
-        gestureEvent->detail = g->info;
-    }
-    else if(g->getGesturePoints().size() == 1)
-        gestureEvent->detail = {GESTURE_TAP};
+
+    if(g->numPoints == 1)
+        setGestureType(&gestureEvent->detail, GESTURE_TAP);
     else
-        gestureEvent->detail = {getLineType(g->getGesturePoints()[g->getGesturePoints().size() - 2], g->getGesturePoints().back())};
+        gestureEvent->detail = g->info;
     return gestureEvent;
 }
 
-void startGesture(TouchEvent event, std::string sysName, std::string name) {
+void startGesture(const TouchEvent event, const char* sysName, const char* name) {
     GestureGroupID gestureGroupID = generateID(event.id, event.point);
     GestureGroup* group = findGroup(gestureGroupID);
     if(!group) {
@@ -385,18 +402,20 @@ void startGesture(TouchEvent event, std::string sysName, std::string name) {
     enqueueEvent(generateGestureEvent(gesture, TouchStartMask, event.time));
 }
 
-void continueGesture(TouchEvent event) {
+void continueGesture(const TouchEvent event) {
     TouchID id = generateTouchID(event.id, event.seat);
     Gesture* gesture = findGesture(id);
     if(gesture) {
-        bool newGesturePoint = gesture->addGesturePoint(event.point, 0);
-        gesture->lastPoint = event.point;
-        gesture->lastPixelPoint = event.pointPixel;
-        enqueueEvent(generateGestureEvent(gesture, newGesturePoint ? TouchMotionMask : TouchHoldMask, event.time));
+        if(!gesture->truncated) {
+            bool newGesturePoint = addGesturePoint(gesture, event.point, event.pointPixel, 0);
+            gesture->lastPoint = event.point;
+            gesture->lastPixelPoint = event.pointPixel;
+            enqueueEvent(generateGestureEvent(gesture, newGesturePoint ? TouchMotionMask : TouchHoldMask, event.time));
+        }
     }
 }
 
-void cancelGesture(TouchEvent event) {
+void cancelGesture(const TouchEvent event) {
     TouchID id = generateTouchID(event.id, event.seat);
     Gesture* gesture = findGesture(id);
     if(gesture) {
@@ -408,18 +427,13 @@ void cancelGesture(TouchEvent event) {
     }
 }
 
-void endGesture(TouchEvent event) {
+void endGesture(const TouchEvent event) {
     TouchID id = generateTouchID(event.id, event.seat);
     Gesture* gesture = findGesture(id);
     if(gesture) {
-        assert(gesture->info.size() == 0 && gesture->getGesturePoints().size());
-        if(gesture->getGesturePoints().size() == 1)
-            gesture->info.push_back(GESTURE_TAP);
-        else if(getRSquared(gesture->points) > R_SQUARED_THRESHOLD) {
-            gesture->info.push_back(getLineType(gesture->getGesturePoints()[0], gesture->getGesturePoints().back()));
-        }
-        else {
-            detectSubLines(gesture);
+        assert(gesture->numPoints);
+        if(gesture->numPoints == 1) {
+            gesture->info.detail[0]=GESTURE_TAP;
         }
         enqueueEvent(generateGestureEvent(gesture, TouchEndMask, event.time));
         assert(gesture->parent->activeCount);

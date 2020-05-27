@@ -1,10 +1,11 @@
-CXX := g++
-CXXFLAGS := -std=c++17 -lstdc++
-DEBUGGING_FLAGS := -g -rdynamic -O0 -D_GLIBCXX_DEBUG
-RELEASE_FLAGS ?= -O3 -DNDEBUG -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-parentheses
-CPPFLAGS ?= $(RELEASE_FLAGS)
-SRC := gestures.cpp gestures-reader.cpp gestures-recorder.cpp
+CC := gcc
+DEBUGGING_FLAGS := -std=c11 -g -rdynamic -O0 -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-sign-compare -Wno-parentheses -Wno-missing-braces
+RELEASE_FLAGS ?= -std=c11 -O3 -DNDEBUG -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-parentheses -Wno-missing-braces
+CFLAGS ?= $(RELEASE_FLAGS)
+LDFLAGS := -lm
+SRC := gesture-event.c gestures-reader.c gestures-recorder.c
 pkgname := sgestures
+
 
 all: sgestures-libinput-writer libsgestures.a
 
@@ -20,22 +21,21 @@ uninstall:
 	rm -f "$(DESTDIR)/usr/bin/sgestures-libinput-writer"
 	rm -rdf "$(DESTDIR)/usr/include/$(pkgname)"
 
-libsgestures.a: $(SRC:.cpp=.o)
+libsgestures.a: $(SRC:.c=.o)
 	ar rcs $@ $^
 
-test: gesture-test
+test: gesture-test sgestures-libinput-writer libsgestures.a
 	./gesture-test
 
 sgestures-libinput-writer: gestures-libinput-writer.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ -ludev -linput
+	$(CC) $(CFLAGS) $^ -o $@ -ludev -linput
 
-sample-gesture-reader: CPPFLAGS := $(DEBUGGING_FLAGS)
-sample-gesture-reader: sample-gesture-reader.o $(SRC:.cpp=.o)
-	$(CXX) $(CXXFLAGS) $^ -o $@ -ludev -linput -lpthread -lm
+sample-gesture-reader: sample-gesture-reader.o
+	$(CC) $(CXXFLAGS) $^ -o $@ -lsgestures -lm
 
-gesture-test: CPPFLAGS := $(DEBUGGING_FLAGS)
-gesture-test: tester.o $(SRC:.cpp=.o) gestures_unit.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
+gesture-test: $(SRC:.c=.o) gestures_unit.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lscutest
 
 clean:
 	rm -f *.{o,a} gesture-test

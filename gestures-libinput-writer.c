@@ -1,13 +1,19 @@
-#include <assert.h>
+/**
+ * @file
+ * Reads raw libinput touch events and converts them into our TouchEvent
+ */
+#include <errno.h>
 #include <fcntl.h>
 #include <libinput.h>
 #include <linux/input.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/eventfd.h>
 #include <sys/poll.h>
-#include "unistd.h"
+#include <unistd.h>
 
-#include "gestures-helper.h"
+#include "touch.h"
+
 /**
  * Opens a path with given flags. Path probably references an input device and likely starts with  /dev/input/
  * If user_data is not NULL and points to a non-zero value, then the device corresponding to path will be grabbed (@see EVIOCGRAB)
@@ -67,7 +73,7 @@ static inline int getYInPixels(struct libinput_event_touch* event) {
     return libinput_event_touch_get_y_transformed(event, GESTURE_PIXEL_REF);
 }
 
-void processTouchEvent(libinput_event_touch* event, enum libinput_event_type type) {
+void processTouchEvent(struct libinput_event_touch* event, enum libinput_event_type type) {
     GesturePoint point = {};
     GesturePoint pointPixel = {};
 
@@ -98,12 +104,12 @@ void processTouchEvent(libinput_event_touch* event, enum libinput_event_type typ
             break;
         case LIBINPUT_EVENT_TOUCH_MOTION:
         case LIBINPUT_EVENT_TOUCH_DOWN:
-            point = { (int)getX(event), (int)getY(event)};
-            pointPixel = {(int)getXInPixels(event), (int)getYInPixels(event)};
+            point = (GesturePoint){ (int)getX(event), (int)getY(event)};
+            pointPixel = (GesturePoint){(int)getXInPixels(event), (int)getYInPixels(event)};
             [[fallthrough]];
         case LIBINPUT_EVENT_TOUCH_CANCEL:
         case LIBINPUT_EVENT_TOUCH_UP:
-            inputDevice = libinput_event_get_device((libinput_event*)event);
+            inputDevice = libinput_event_get_device((struct libinput_event*)event);
             id = libinput_device_get_id_product(inputDevice);
             seat = libinput_event_touch_get_seat_slot(event);
             time = libinput_event_touch_get_time(event);
@@ -135,23 +141,35 @@ void wakeupLibInputListener() {
 
 static void listenForGestures(struct libinput* li) {
     dummyFD = eventfd(0, EFD_CLOEXEC);
-    libinput_event* event;
-    auto fd = libinput_get_fd(li);
-    struct pollfd fds[2] = {{fd, POLLIN}, {(short)dummyFD, POLLIN}};
+    struct libinput_event* event;
+    uint32_t fd = libinput_get_fd(li);
+    struct pollfd fds[2] = {{fd, POLLIN | POLLHUP}, {(short)dummyFD, POLLIN}};
     while(!isGestures()) {
         poll(fds, 2, -1);
+        if(fds[0].revents & POLLHUP ) {
+            break;
+        }
         if(fds[0].revents & POLLIN == 0)
             continue;
         libinput_dispatch(li);
         while(!isGestures() && (event = libinput_get_event(li))) {
             enum libinput_event_type type = libinput_event_get_type(event);
-            processTouchEvent((libinput_event_touch*)event, type);
+            processTouchEvent((struct libinput_event_touch*)event, type);
             libinput_event_destroy(event);
             libinput_dispatch(li);
         }
     }
     libinput_unref(li);
 }
+/**
+ * Starting listening for and processing gestures.
+ * One thread is spawned to listen for libinput TouchEvents and convert them into our custom GestureEvents
+ * Another thread processes these GestureEvents and triggers GestureBindings
+ *
+ * @param paths only listen for these paths
+ * @param num length of paths array
+ * @param grab rather to get an exclusive grab on the device
+ */
 void startGestures(const char** paths, int num, bool grab) {
     struct libinput* li = paths && num ? createPathInterface(paths, num, grab) : createUdevInterface(grab);
     listenForGestures(li);
