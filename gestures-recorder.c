@@ -100,8 +100,8 @@ static TouchID generateTouchID(ProductID id, uint32_t seat) {
 static GestureGroup* addGroup (GestureGroupID id, const char* sysName, const char* name) {
     GestureGroup* newNode = calloc(1, sizeof(GestureGroup));
     newNode->id = id;
-    strcpy(newNode->sysName, sysName);
-    strcpy(newNode->name, name);
+    strncpy(newNode->sysName, sysName, DEVICE_NAME_LEN - 1);
+    strncpy(newNode->name, name, DEVICE_NAME_LEN - 1);
     newNode->next = root.next;
     root.next = newNode;
     return newNode;

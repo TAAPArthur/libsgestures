@@ -39,7 +39,7 @@ typedef struct TouchEvent {
 } TouchEvent ;
 
 
-void readTouchEvent(uint32_t fd);
+bool readTouchEvent(uint32_t fd);
 bool isTouchEventReady(int32_t fd);
 
 /**

@@ -129,7 +129,7 @@ void processTouchEvent(struct libinput_event_touch* event, enum libinput_event_t
                 buffer = libinput_device_get_name(inputDevice);
                 size = strlen(buffer) + 1;
                 write(1, &size, sizeof(size));
-                write(1, buffer, size + 1);
+                write(1, buffer, size);
             }
             break;
     }

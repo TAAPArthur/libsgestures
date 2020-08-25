@@ -7,7 +7,7 @@ SRC := gesture-event.c gestures-reader.c gestures-recorder.c
 pkgname := sgestures
 
 
-all: sgestures-libinput-writer libsgestures.a
+all: libsgestures.a sample-gesture-reader sgestures-libinput-writer
 
 install-headers:
 	install -m 0744 -Dt "$(DESTDIR)/usr/include/$(pkgname)/" *.h
@@ -31,8 +31,9 @@ test: gesture-test  libinput-gesture-test sgestures-libinput-writer libsgestures
 sgestures-libinput-writer: gestures-libinput-writer.o
 	$(CC) $(CFLAGS) $^ -o $@ -ludev -linput
 
+sample-gesture-reader: CFLAGS := $(DEBUGGING_FLAGS)
 sample-gesture-reader: sample-gesture-reader.o
-	$(CC) $(CXXFLAGS) $^ -o $@ -lsgestures -lm
+	$(CC) $(CFLAGS) $^ -o $@ -lsgestures -lm
 
 gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
 gesture-test: $(SRC:.c=.o) gestures_unit.o
