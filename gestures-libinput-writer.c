@@ -13,6 +13,8 @@
 #include <unistd.h>
 
 #include "touch.h"
+#include "writer.h"
+#include "gestures-private.h"
 
 /**
  * Opens a path with given flags. Path probably references an input device and likely starts with  /dev/input/
@@ -27,9 +29,12 @@
 static int open_restricted(const char* path, int flags, void* user_data) {
     bool* grab = (bool*)user_data;
     int fd = open(path, flags);
-    if(fd >= 0 && grab && *grab && ioctl(fd, EVIOCGRAB, &grab) == -1)
-        printf("Grab requested, but failed for %s (%s)\n",
-            path, strerror(errno));
+    if(fd >= 0 && grab && *grab && ioctl(fd, EVIOCGRAB, &grab) == -1){
+        char buffer[256] = "Grab requested, but failed for " ;
+        strncat(buffer, path, 200);
+        perror(buffer);
+        exit(1);
+    }
     return fd < 0 ? -errno : fd;
 }
 /**
@@ -45,7 +50,7 @@ static struct libinput_interface interface = {
     .open_restricted = open_restricted,
     .close_restricted = close_restricted,
 };
-struct udev* udev = NULL;
+static struct udev* udev = NULL;
 struct libinput* createUdevInterface(bool grab) {
     udev = udev_new();
     struct libinput* li = libinput_udev_create_context(&interface, &grab, udev);
@@ -129,30 +134,36 @@ void processTouchEvent(struct libinput_event_touch* event, enum libinput_event_t
             break;
     }
 }
-static bool shuttingDown = 0;
-static bool isGestures() {
-    return shuttingDown;
-}
+static volatile bool isListening = 0;
 static int dummyFD;
 void wakeupLibInputListener() {
-    long num = 100;
+    char num = 100;
     write(dummyFD, &num, sizeof(num));
+}
+void stopGestures() {
+    isListening = 0;
+    wakeupLibInputListener();
 }
 
 static void listenForGestures(struct libinput* li) {
     dummyFD = eventfd(0, EFD_CLOEXEC);
     struct libinput_event* event;
     uint32_t fd = libinput_get_fd(li);
-    struct pollfd fds[2] = {{fd, POLLIN | POLLHUP}, {(short)dummyFD, POLLIN}};
-    while(!isGestures()) {
-        poll(fds, 2, -1);
-        if(fds[0].revents & POLLHUP ) {
+    // POLLERR | POLLHUP are always implicitly selected
+    struct pollfd fds[3] = {{fd, POLLIN | POLLHUP},{STDOUT_FILENO, POLLERR | POLLHUP}, {(short)dummyFD, POLLIN}};
+    isListening = 1;
+    while(isListening) {
+        poll(fds, LEN(fds), -1);
+        if(fds[0].revents & (POLLERR|POLLHUP) || fds[1].revents & (POLLERR|POLLHUP)) {
             break;
         }
-        if(fds[0].revents & POLLIN == 0)
+        if(fds[2].revents & POLLIN == 0) {
+            char c;
+            read(dummyFD, &c, sizeof(char));
             continue;
+        }
         libinput_dispatch(li);
-        while(!isGestures() && (event = libinput_get_event(li))) {
+        while(event = libinput_get_event(li)) {
             enum libinput_event_type type = libinput_event_get_type(event);
             processTouchEvent((struct libinput_event_touch*)event, type);
             libinput_event_destroy(event);
@@ -160,6 +171,7 @@ static void listenForGestures(struct libinput* li) {
         }
     }
     libinput_unref(li);
+    close(dummyFD);
 }
 /**
  * Starting listening for and processing gestures.

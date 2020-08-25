@@ -24,8 +24,9 @@ uninstall:
 libsgestures.a: $(SRC:.c=.o)
 	ar rcs $@ $^
 
-test: gesture-test sgestures-libinput-writer libsgestures.a
+test: gesture-test  libinput-gesture-test sgestures-libinput-writer libsgestures.a
 	./gesture-test
+	./libinput-gesture-test
 
 sgestures-libinput-writer: gestures-libinput-writer.o
 	$(CC) $(CFLAGS) $^ -o $@ -ludev -linput
@@ -36,6 +37,10 @@ sample-gesture-reader: sample-gesture-reader.o
 gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
 gesture-test: $(SRC:.c=.o) gestures_unit.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lscutest
+
+libinput-gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
+libinput-gesture-test: $(SRC:.c=.o) libinput_gestures_unit.o  gestures-libinput-writer.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lscutest -ludev -linput
 
 clean:
 	rm -f *.{o,a} gesture-test

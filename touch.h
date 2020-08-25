@@ -81,5 +81,4 @@ void endGesture(const TouchEvent event);
  * @param seat
  */
 void cancelGesture(const TouchEvent event);
-
 #endif

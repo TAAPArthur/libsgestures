@@ -525,15 +525,3 @@ SCUTEST(differentiate_devices ) {
     gestureEventLoop(bindings, LEN(bindings));
     assert(getCount() == 2);
 }
-
-/*
-SCUTEST("bad-path", {
-    const char* path = "/dev/null";
-    startGestures(&path, 1, 1);
-    stopGestures();
-}
-SCUTEST(udev ) {
-    startGestures();
-    stopGestures();
-}
-*/
