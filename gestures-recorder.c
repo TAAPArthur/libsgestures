@@ -408,8 +408,6 @@ void continueGesture(const TouchEvent event) {
     if(gesture) {
         if(!gesture->truncated) {
             bool newGesturePoint = addGesturePoint(gesture, event.point, event.pointPixel, 0);
-            gesture->lastPoint = event.point;
-            gesture->lastPixelPoint = event.pointPixel;
             enqueueEvent(generateGestureEvent(gesture, newGesturePoint ? TouchMotionMask : TouchHoldMask, event.time));
         }
     }

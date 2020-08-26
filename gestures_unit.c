@@ -165,6 +165,20 @@ SCUTEST(many_points ) {
     endGestureHelper(1);
     GestureEvent* event = getNextGesture();
     assert(event);
+    assert(areDetailsEqual(event->detail, (GestureDetail){GESTURE_SOUTH_EAST}));
+}
+
+SCUTEST(many_points_cont ) {
+
+    SCALE_FACTOR = 1;
+    listenForGestureEvents(GestureEndMask);
+    int steps = 100;
+    GesturePoint points[] = {{0,0}, {steps, steps}};
+    startGestureWithSteps(points, LEN(points), 0, steps);
+    endGestureHelper(1);
+    GestureEvent* event = getNextGesture();
+    assert(event);
+    assert(areDetailsEqual(event->detail, (GestureDetail){GESTURE_SOUTH_EAST}));
 }
 SCUTEST(many_lines ) {
     listenForGestureEvents(GestureEndMask);
