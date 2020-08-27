@@ -9,7 +9,7 @@
 #define DIVIDE_POINT(P, N) do{P.x/=N; P.y/=N;}while(0)
 
 /// The consecutive points within this distance are considered the same and not double counted
-#define THRESHOLD_SQ (100)
+#define THRESHOLD_SQ (1000)
 /// All seat of a gesture have to start/end within this sq distance of each other
 #define PINCH_THRESHOLD (256)
 /// The cutoff for when a sequence of points forms a line
