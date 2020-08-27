@@ -12,10 +12,15 @@
 /// Used to determine if a line as a positive, 0 or negative slope
 #define SIGN_THRESHOLD(X) ((X)>.5?1:(X)>=-.5?0:-1)
 
-GestureType getLineType(GesturePoint start, GesturePoint end) {
+GestureType getLineType(const GesturePoint start, const GesturePoint end) {
     double dx = end.x - start.x, dy = end.y - start.y;
     double sum = sqrt(SQUARE(dx) + SQUARE(dy));
-    return (GestureType)((((SIGN_THRESHOLD(dx / sum) + 1) << 2) | (SIGN_THRESHOLD(dy / sum) + 1)) + GESTURE_NORTH_WEST );
+    int x = ((SIGN_THRESHOLD(dx / sum)));
+    int y = ((SIGN_THRESHOLD(dy / sum)));
+
+    GestureType type = GESTURE_WEST + (2 + x) * y - (2*x +2) * (!y);
+    assert(type < 16);
+    return type;
 }
 
 struct GestureGroup;
@@ -173,29 +178,24 @@ static Gesture* findGesture(TouchID id) {
 GestureEvent* enqueueEvent(GestureEvent* event);
 
 
-GestureType getOppositeDirection(GestureType d) {
-    return (GestureType)(GESTURE_SOUTH_EAST - d + GESTURE_NORTH_WEST );
-}
+
 GestureType getMirroredXDirection(GestureType d) {
-    return (GestureType)(d - ((d - GESTURE_NORTH_WEST) / 4 - 1) * (GESTURE_NORTH_EAST - GESTURE_NORTH_WEST ));
+    return ((~(d - GESTURE_EAST)+ 5)%8 )+ GESTURE_EAST;
 }
+
 GestureType getMirroredYDirection(GestureType d) {
-    return (GestureType)((d % 4 - 1) * (-2) + d);
+    return ((~(d - GESTURE_EAST)+ 1)%8 )+ GESTURE_EAST;
 }
 
 GestureType getRot90Direction(GestureType d) {
-    int sign = ((d - GESTURE_NORTH_WEST) / (GESTURE_TAP - GESTURE_NORTH_WEST) * 2) - 1;
-    int a = ((d- GESTURE_NORTH_WEST) / 4 - 1);
-    int odd = (d % 2);
-    int b = (a * (2 + odd * 3));
-    int c = (!a * -3 * sign);
-    int e = (d - GESTURE_NORTH_WEST - a * 3 == 5) * a * 6;
-    GestureType result = (GestureType)(d - b - c  - e  );
-    return result;
+    return ((d - GESTURE_EAST   + 2) % 8) + GESTURE_EAST   ;
 }
 
 GestureType getRot270Direction(GestureType d) {
-    return getRot90Direction(getOppositeDirection(d));
+    return ((d - GESTURE_EAST  + 6) % 8) + GESTURE_EAST  ;
+}
+GestureType getOppositeDirection(GestureType d) {
+    return ((d - GESTURE_EAST + 4) % 8) + GESTURE_EAST ;
 }
 
 GestureDetail transformGestureDetail(const GestureDetail detail, TransformMasks mask) {

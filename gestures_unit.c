@@ -9,7 +9,7 @@
 
 #define NULL_POINT ((GesturePoint){-1, -1})
 
-GestureType getLineType(GesturePoint start, GesturePoint end);
+GestureType getLineType(const GesturePoint start, const GesturePoint end);
 void triggerGestureBinding(GestureBinding* bindings, int N, const GestureEvent* event){
     for(int i = 0; i < N; i++)
         if(matchesGestureEvent(&bindings[i], event))
@@ -34,19 +34,45 @@ const struct GestureChecker {
     {GESTURE_SOUTH, GESTURE_SOUTH, GESTURE_NORTH, GESTURE_NORTH, GESTURE_EAST},
     {GESTURE_SOUTH_EAST, GESTURE_SOUTH_WEST, GESTURE_NORTH_EAST, GESTURE_NORTH_WEST, GESTURE_NORTH_EAST},
 };
+SCUTEST(validate_dir_simple) {
+    assert(GESTURE_EAST == getMirroredXDirection(GESTURE_WEST));
+    assert(GESTURE_WEST == getMirroredXDirection(GESTURE_EAST));
+    assert(GESTURE_WEST == getMirroredYDirection(GESTURE_WEST));
+    assert(GESTURE_EAST == getMirroredYDirection(GESTURE_EAST));
+}
 SCUTEST_ITER(validate_dir , LEN(gestureTypeTuples)) {
     struct GestureChecker values = gestureTypeTuples[_i];
     assert(values.type == getOppositeDirection(values.typeOpposite));
     assert(values.type == getOppositeDirection(getOppositeDirection(values.type)));
-    assert(values.type == getMirroredXDirection(values.typeMirrorX));
-    assert(values.type == getMirroredXDirection(getMirroredXDirection(values.type)));
-    assert(values.type == getMirroredYDirection(values.typeMirrorY));
-    assert(values.type == getMirroredYDirection(getMirroredYDirection(values.type)));
     assert(values.type == getRot270Direction(values.rot90));
     assert(values.type == getRot90Direction(getRot90Direction(values.typeOpposite)));
     assert(values.type == getRot90Direction(getRot270Direction(values.type)));
     assert(values.type == getRot270Direction(getRot270Direction(values.typeOpposite)));
+    assert(values.type == getMirroredXDirection(values.typeMirrorX));
+    assert(values.type == getMirroredXDirection(getMirroredXDirection(values.type)));
+    assert(values.type == getMirroredYDirection(values.typeMirrorY));
+    assert(values.type == getMirroredYDirection(getMirroredYDirection(values.type)));
 }
+
+GesturePoint lineDelta[] = {
+    [GESTURE_TAP] = {0, 0},
+    [GESTURE_EAST] = {1, 0},
+    [GESTURE_NORTH_EAST] = {1, -1},
+    [GESTURE_NORTH] = {0, -1},
+    [GESTURE_NORTH_WEST] = {-1, -1},
+    [GESTURE_WEST] = {-1, 0},
+    [GESTURE_SOUTH_WEST] = {-1, 1},
+    [GESTURE_SOUTH] = {0, 1},
+    [GESTURE_SOUTH_EAST] = {1, 1},
+};
+
+SCUTEST_ITER(validate_line_type, LEN(lineDelta)) {
+    GesturePoint p = lineDelta[_i];
+    if(p.x && p.y){
+        assert(getLineType((GesturePoint){0,0}, p) == _i);
+    }
+}
+
 static int FAKE_DEVICE_ID = 0;
 static unsigned int timeCounter = 0;
 static void continueGestureWrapper(ProductID id, int32_t seat, GesturePoint point) {
@@ -211,24 +237,6 @@ SCUTEST(cancel_reset){
     assert(event->flags.mask == GestureEndMask);
     assert(event->flags.fingers == 1);
 }
-
-GesturePoint lineDelta[] = {
-    [0] = {},
-    [1] = {},
-    [2] = {},
-    [3] = {},
-    [GESTURE_NORTH_WEST] = {-1, -1},
-    [GESTURE_WEST] = {-1, 0},
-    [GESTURE_SOUTH_WEST] = {-1, 1},
-    [7] = {},
-    [GESTURE_NORTH] = {0, -1},
-    [GESTURE_TAP] = {0, 0},
-    [GESTURE_SOUTH] = {0, 1},
-    [11] = {},
-    [GESTURE_NORTH_EAST] = {1, -1},
-    [GESTURE_EAST] = {1, 0},
-    [GESTURE_SOUTH_EAST] = {1, 1},
-};
 
 struct GestureEventChecker {
     GestureDetail detail;

@@ -40,11 +40,11 @@ typedef enum {
  * @param mask
  */
 void listenForGestureEvents(uint32_t mask);
+
 /**
  * Types of gestures
  */
 typedef enum {
-
     GESTURE_NONE = 0,
 
     /// A gesture not defined by any of the above
@@ -54,21 +54,18 @@ typedef enum {
     GESTURE_PINCH = 2,
     /// Represents fingers coming apart
     GESTURE_PINCH_OUT = 3,
-    /// @{ Gesture in a straight line
-    GESTURE_NORTH_WEST = 4,
-    GESTURE_WEST,
-    GESTURE_SOUTH_WEST,
-    GESTURE_NORTH = 8,
-    GESTURE_TAP,
-    GESTURE_SOUTH,
-    GESTURE_NORTH_EAST = 12,
-    GESTURE_EAST,
-    GESTURE_SOUTH_EAST,
-    /// @}
-
-
+    GESTURE_TAP = 4,
     /// Too many gestures
-    GESTURE_TOO_LARGE = 15,
+    GESTURE_TOO_LARGE = 5,
+    GESTURE_EAST            = 0b1000,
+    GESTURE_NORTH_EAST      = 0b1001,
+    GESTURE_NORTH           = 0b1010,
+    GESTURE_NORTH_WEST      = 0b1011,
+    GESTURE_WEST            = 0b1100,
+    GESTURE_SOUTH_WEST      = 0b1101,
+    GESTURE_SOUTH           = 0b1110,
+    GESTURE_SOUTH_EAST      = 0b1111,
+
 } GestureType;
 
 /**
