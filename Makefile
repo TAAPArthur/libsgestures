@@ -31,10 +31,6 @@ test: gesture-test  libinput-gesture-test sgestures-libinput-writer libsgestures
 sgestures-libinput-writer: gestures-libinput-writer.o
 	$(CC) $(CFLAGS) $^ -o $@ -ludev -linput
 
-sample-gesture-reader: CFLAGS := $(DEBUGGING_FLAGS)
-sample-gesture-reader: sample-gesture-reader.o
-	$(CC) $(CFLAGS) $^ -o $@ -lsgestures -lm
-
 gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
 gesture-test: $(SRC:.c=.o) gestures_unit.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lscutest
@@ -42,6 +38,15 @@ gesture-test: $(SRC:.c=.o) gestures_unit.o
 libinput-gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
 libinput-gesture-test: $(SRC:.c=.o) libinput_gestures_unit.o  gestures-libinput-writer.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lscutest -ludev -linput
+
+
+sample-gesture-reader: CFLAGS := $(DEBUGGING_FLAGS)
+sample-gesture-reader: sample-gesture-reader.o $(SRC:.c=.o)
+	$(CC) $(CFLAGS) $^ -o $@ -lm
+
+debug: CFLAGS := $(DEBUGGING_FLAGS)
+debug: sgestures-libinput-writer sample-gesture-reader
+	./sgestures-libinput-writer | ./sample-gesture-reader
 
 clean:
 	rm -f *.{o,a} gesture-test
