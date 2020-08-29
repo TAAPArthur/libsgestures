@@ -261,7 +261,7 @@ const char* getGestureTypeString(GestureType t) {
 }
 
 bool generatePinchEvent(GestureEvent* gestureEvent, GestureGroup* group) {
-    if(gestureEvent->flags.fingers > 1 && gestureEvent->flags.avgSqDisplacement > THRESHOLD_SQ) {
+    if(gestureEvent->flags.fingers > 1 ) {
         GesturePoint avgEnd = {0, 0};
         GesturePoint avgStart = {0, 0};
         for(Gesture* gesture = group->root.next; gesture; gesture = gesture->next){
@@ -270,18 +270,29 @@ bool generatePinchEvent(GestureEvent* gestureEvent, GestureGroup* group) {
         }
         DIVIDE_POINT(avgEnd, gestureEvent->flags.fingers);
         DIVIDE_POINT(avgStart, gestureEvent->flags.fingers);
+        Gesture* ref = NULL;
+        double refDistance = -1;
+        for(Gesture* gesture = group->root.next; gesture; gesture = gesture->next){
+            double dist = SQ_DIST(gesture->lastPoint, avgEnd) +SQ_DIST(gesture->firstPoint, avgStart);
+            if(dist > refDistance) {
+                refDistance = dist;
+                ref = gesture;
+            }
+        }
+        assert(ref);
         double avgStartDis = 0;
         double avgEndDis = 0;
         for(Gesture* gesture = group->root.next; gesture; gesture = gesture->next){
-            avgEndDis += SQ_DIST(gesture->lastPoint, avgEnd);;
-            avgStartDis += SQ_DIST(gesture->firstPoint, avgStart);;
+            avgEndDis += SQ_DIST(gesture->lastPoint, ref->lastPoint);
+            avgStartDis += SQ_DIST(gesture->firstPoint, ref->firstPoint);
         }
-        avgEndDis /= gestureEvent->flags.fingers;
-        avgStartDis /=  gestureEvent->flags.fingers;
-        if(avgStartDis < PINCH_THRESHOLD && avgEndDis > PINCH_THRESHOLD)
-            setGestureType(&gestureEvent->detail,  GESTURE_PINCH_OUT);
-        else if(avgStartDis > PINCH_THRESHOLD && avgEndDis < PINCH_THRESHOLD)
+        avgEndDis /= (gestureEvent->flags.fingers -1);
+        avgStartDis /=  (gestureEvent->flags.fingers -1);
+        double percentDiff = (avgStartDis - avgEndDis) * 2/(avgStartDis + avgEndDis);
+        if(percentDiff > PINCH_THRESHOLD_PERCENT)
             setGestureType(&gestureEvent->detail,  GESTURE_PINCH);
+        else if(percentDiff < -PINCH_THRESHOLD_PERCENT)
+            setGestureType(&gestureEvent->detail,  GESTURE_PINCH_OUT);
         else return 0;
         return 1;
     }

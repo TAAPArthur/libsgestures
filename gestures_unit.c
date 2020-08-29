@@ -395,10 +395,10 @@ struct GenericGestureCheck {
     },
     {
         {
-            {{1, 1}, NULL_POINT},
-            {{1, 1}, NULL_POINT},
-            {{1, 1}, NULL_POINT},
-            {{0, 1}, {0, 2}},
+            {{0, 0}, NULL_POINT},
+            {{0, 2}, NULL_POINT},
+            {{2, 0}, NULL_POINT},
+            {{2, 2}, {1, 1}},
         },
         {GESTURE_UNKNOWN},
     },
