@@ -45,7 +45,7 @@ static inline GestureEvent* bufferPop(RingBuffer* buffer) {
 }
 static RingBuffer gestureQueue;
 static RingBuffer touchQueue;
-static GestureEvent reflectionEvent;
+static GestureEvent* reflectionEvent;
 static bool hasRelectionEvent;
 
 bool ready;
@@ -154,7 +154,7 @@ GestureEvent* getNextGesture() {
         return NULL;
     if(hasRelectionEvent) {
         hasRelectionEvent = 0;
-        return &reflectionEvent;
+        return reflectionEvent;
     }
     GestureEvent* event;
     if(!getBufferSize(&touchQueue) || getBufferSize(&gestureQueue) && bufferPeek(&gestureQueue)->seq < bufferPeek(&touchQueue)->seq) {
@@ -176,13 +176,14 @@ GestureEvent* getNextGesture() {
         event = bufferPop(&touchQueue);
     }
     if(event->flags.reflectionMask) {
-        memcpy(&reflectionEvent, event, sizeof(GestureEvent));
+        reflectionEvent=malloc(sizeof(GestureEvent));
+        memcpy(reflectionEvent, event, sizeof(GestureEvent));
         hasRelectionEvent = 1;
-        if(reflectionEvent.flags.reflectionMask == Rotate90Mask)
-            reflectionEvent.flags.reflectionMask = Rotate270Mask;
-        else if(reflectionEvent.flags.reflectionMask == Rotate270Mask)
-            reflectionEvent.flags.reflectionMask = Rotate90Mask;
-        reflectionEvent.detail = transformGestureDetail(event->detail, reflectionEvent.flags.reflectionMask);
+        if(reflectionEvent->flags.reflectionMask == Rotate90Mask)
+            reflectionEvent->flags.reflectionMask = Rotate270Mask;
+        else if(reflectionEvent->flags.reflectionMask == Rotate270Mask)
+            reflectionEvent->flags.reflectionMask = Rotate90Mask;
+        reflectionEvent->detail = transformGestureDetail(event->detail, reflectionEvent->flags.reflectionMask);
     }
     assert(event);
     return event;
