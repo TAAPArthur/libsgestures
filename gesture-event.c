@@ -1,7 +1,6 @@
 #define _POSIX_C_SOURCE  199309L
 
-#include "assert.h"
-#include "stdio.h"
+#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <time.h>
@@ -18,7 +17,6 @@
  * This class is intended to have a 1 read thread and one thread write.
  * Multiple threads trying to read or trying to write will cause problems
  *
- * Meant to be a drop in replacement for std::deque in terms of method signatures
  */
 typedef struct RingBuffer {
     GestureEvent* eventBuffer[MAX_BUFFER_SIZE];

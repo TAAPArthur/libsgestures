@@ -51,7 +51,6 @@ static inline void setGestureType(GestureDetail* detail, GestureType type) {
 }
 
 
-
 static inline bool addGesturePoint(Gesture* g, GesturePoint point,GesturePoint pixelPoint, bool first) {
     if(!first) {
         GesturePoint lastPoint = g->lastPoint;

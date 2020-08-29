@@ -3,8 +3,8 @@
  */
 #ifndef LIB_SGESUTRES_H_
 #define LIB_SGESUTRES_H_
-#include "assert.h"
-#include "string.h"
+#include <assert.h>
+#include <string.h>
 #include "touch.h"
 
 #define MAX_GESTURE_DETAIL_SIZE 128
