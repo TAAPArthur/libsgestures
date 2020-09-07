@@ -120,7 +120,7 @@ bool matchesGestureFlags(GestureBinding*binding, const GestureFlags* flags) {
         INRANGE(duration) &&
         INRANGE(fingers) &&
         INRANGE(totalSqDistance) &&
-        (binding->minFlags.mask == 0 || (binding->minFlags.mask & flags->mask) == flags->mask) &&
+        ((binding->minFlags.mask?binding->minFlags.mask:GestureEndMask) & flags->mask) == flags->mask &&
         binding->minFlags.reflectionMask == flags->reflectionMask;
 }
 
