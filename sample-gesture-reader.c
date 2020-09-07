@@ -10,11 +10,7 @@ int main(int argc, char* const argv[]) {
         readTouchEvent(0);
         GestureEvent* event;
         while(event = getNextGesture()) {
-            printf("%s", getGestureMaskString(event->flags.mask));
-            for(int i = 0; i< getNumOfTypes(event->detail); i++) {
-                printf(" %s", getGestureTypeString(getGestureType(event->detail, i)));
-            }
-            printf("\n");
+            dumpGesture(event);
             free(event);
         }
     }

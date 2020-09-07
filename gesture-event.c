@@ -2,10 +2,11 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <stdlib.h>
-#include <time.h>
 #include <linux/input.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "gestures.h"
 #include "event.h"
@@ -191,4 +192,12 @@ GestureEvent* waitForNextGesture() {
         justWait();
     }
     return getNextGesture();
+}
+
+void dumpGesture(GestureEvent* event){
+    printf("%s", getGestureMaskString(event->flags.mask));
+    for(int i = 0; i< getNumOfTypes(event->detail); i++) {
+        printf(" %s", getGestureTypeString(getGestureType(event->detail, i)));
+    }
+    printf("\n");
 }

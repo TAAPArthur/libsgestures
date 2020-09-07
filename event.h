@@ -52,4 +52,6 @@ GestureEvent* waitForNextGesture();
 GestureEvent* getNextGesture();
 bool isNextGestureReady();
 uint32_t getGestureQueueSize();
+
+void dumpGesture(GestureEvent* event);
 #endif
