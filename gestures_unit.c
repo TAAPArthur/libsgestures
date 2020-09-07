@@ -152,7 +152,7 @@ SCUTEST_ITER(start_continue_end_gesture_tap, 3){
     for(int i = 0; i< 2 * n + 1; i ++) {
         GestureEvent* event = getNextGesture();
         assert(event);
-        assert(event->detail.detail[0] == GESTURE_TAP);
+        assert(event->detail[0] == GESTURE_TAP);
     }
 }
 
@@ -300,7 +300,9 @@ SCUTEST_ITER(validate_masks , LEN(gestureEventTuples)*LEN(MASKS)) {
     TransformMasks mask = MASKS[_i % LEN(MASKS)];
     struct GestureEventChecker values = gestureEventTuples[index];
     static GesturePoint points[32];
-    GestureBinding bindingBase = {values.detail, NULL, {}, {}};
+    GestureBinding bindingBase = {};
+    memcpy((GestureType*)bindingBase.detail, values.detail, sizeof(GestureDetail));
+
     //GestureBinding bindingRefl = GestureBinding({values.detail}, {}, {.reflectionMask = mask}
     int N;
     N = getGesturePointsThatMakeLine(bindingBase.detail, points);
@@ -502,7 +504,7 @@ struct GestureBindingEventMatching {
     {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers=1, }}, {{GESTURE_TAP}, incrementCount, {.count = 1}}, 1},
     {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers=1, }}, {{GESTURE_TAP}, incrementCount, {.count = 1}}, 0},
     {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers=1, }}, {{GESTURE_TAP}, incrementCount, {.count = 2}}, 1},
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers=1, }}, {{{GESTURE_UNKNOWN}}, incrementCount, {.count = 1}}, 0},
+    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers=1, }}, {{GESTURE_UNKNOWN}, incrementCount, {.count = 1}}, 0},
 };
 SCUTEST_ITER(gesture_matching , LEN(gestureBindingEventMatching)) {
     struct GestureBindingEventMatching values = gestureBindingEventMatching[_i];

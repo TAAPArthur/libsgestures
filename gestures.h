@@ -149,24 +149,12 @@ typedef struct GestureFlags {
     GestureMask mask ;
 } GestureFlags ;
 
-typedef struct GestureDetail{
-    GestureType detail[MAX_GESTURE_DETAIL_SIZE];
-}GestureDetail;
+typedef GestureType GestureDetail[MAX_GESTURE_DETAIL_SIZE];
 
-static inline GestureType getGestureType(GestureDetail detail, int N) {
-    return detail.detail[N] ;
-}
+GestureType getGestureType(const GestureDetail detail, int N);
 
-static inline int getNumOfTypes(GestureDetail detail) {
-    for(int i=0;i<MAX_GESTURE_DETAIL_SIZE;i++)
-        if(getGestureType(detail, i)==GESTURE_NONE)
-            return i;
-    return MAX_GESTURE_DETAIL_SIZE;
-}
-
-static inline bool areDetailsEqual(GestureDetail detail, GestureDetail detail2) {
-    return memcmp(detail.detail, detail2.detail, sizeof(detail.detail)) == 0;
-}
+int getNumOfTypes(const GestureDetail detail);
+bool areDetailsEqual(const GestureDetail detail, const GestureDetail detail2);
 
 /**
  * Generates a list of gesture keybindings based on flags
@@ -176,7 +164,7 @@ static inline bool areDetailsEqual(GestureDetail detail, GestureDetail detail2) 
  *
  * @return
  */
-GestureDetail transformGestureDetail(const GestureDetail keyBinding, const TransformMasks mask);
+GestureType* transformGestureDetail(GestureDetail detail, const TransformMasks mask);
 /**
  * @param t
  * @return string representation of t

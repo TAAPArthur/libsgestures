@@ -41,15 +41,30 @@ typedef struct Gesture {
     bool truncated;
 }Gesture ;
 
-static inline void addGestureType(GestureDetail* detail, GestureType type) {
-    detail->detail[getNumOfTypes(*detail)] = type;
+GestureType getGestureType(const GestureDetail detail, int N) {
+    return detail[N] ;
 }
 
-static inline void setGestureType(GestureDetail* detail, GestureType type) {
-    assert(getNumOfTypes(*detail) == 0);
-    detail->detail[0] = type;
+int getNumOfTypes(const GestureDetail detail) {
+    for(int i=0;i<MAX_GESTURE_DETAIL_SIZE;i++)
+        if(getGestureType(detail, i)==GESTURE_NONE)
+            return i;
+    return MAX_GESTURE_DETAIL_SIZE;
 }
 
+bool areDetailsEqual(const GestureDetail detail, const GestureDetail detail2) {
+    return memcmp(detail, detail2, sizeof(GestureDetail)) == 0;
+}
+
+
+static inline void addGestureType(GestureDetail detail, GestureType type) {
+    detail[getNumOfTypes(detail)] = type;
+}
+
+static inline void setGestureType(GestureDetail detail, GestureType type) {
+    assert(getNumOfTypes(detail) == 0);
+    detail[0] = type;
+}
 
 static inline bool addGesturePoint(Gesture* g, GesturePoint point,GesturePoint pixelPoint, bool first) {
     if(!first) {
@@ -66,7 +81,7 @@ static inline bool addGesturePoint(Gesture* g, GesturePoint point,GesturePoint p
                 g->truncated = true;
                 return 0;
             }
-            addGestureType(&g->info, dir);
+            addGestureType(g->info, dir);
             g->lastDir = dir;
 
         }
@@ -197,12 +212,10 @@ GestureType getOppositeDirection(GestureType d) {
     return ((d - GESTURE_EAST + 4) % 8) + GESTURE_EAST ;
 }
 
-GestureDetail transformGestureDetail(const GestureDetail detail, TransformMasks mask) {
+GestureType* transformGestureDetail(GestureDetail detail, TransformMasks mask) {
     if(mask) {
-        GestureDetail mirror = {};
         for(int i = 0; i< getNumOfTypes(detail); i++)
-            addGestureType(&mirror, getReflection(mask, getGestureType(detail, i)));
-        return mirror;
+            detail[i] = getReflection(mask, getGestureType(detail, i));
     }
     return detail;
 }
@@ -289,9 +302,9 @@ bool generatePinchEvent(GestureEvent* gestureEvent, GestureGroup* group) {
         avgStartDis /=  (gestureEvent->flags.fingers -1);
         double percentDiff = (avgStartDis - avgEndDis) * 2/(avgStartDis + avgEndDis);
         if(percentDiff > PINCH_THRESHOLD_PERCENT)
-            setGestureType(&gestureEvent->detail,  GESTURE_PINCH);
+            setGestureType(gestureEvent->detail,  GESTURE_PINCH);
         else if(percentDiff < -PINCH_THRESHOLD_PERCENT)
-            setGestureType(&gestureEvent->detail,  GESTURE_PINCH_OUT);
+            setGestureType(gestureEvent->detail,  GESTURE_PINCH_OUT);
         else return 0;
         return 1;
     }
@@ -321,13 +334,13 @@ bool setReflectionMask(GestureEvent* gestureEvent, GestureGroup* group) {
                 }
             }
     if(sameCount == gestureEvent->flags.fingers) {
-        gestureEvent->detail = gesture->info;
+        memcpy(gestureEvent->detail, gesture->info, sizeof(GestureDetail));
         return 1;
     }
     for(uint32_t i = 0; i < LEN(reflectionMasks); i++) {
         if(sameCount + reflectionCounts[i] / getNumOfTypes(gesture->info) == gestureEvent->flags.fingers) {
             gestureEvent->flags.reflectionMask = reflectionMasks[i];
-            gestureEvent->detail = gesture->info;
+            memcpy(gestureEvent->detail, gesture->info, sizeof(GestureDetail));
             return 1;
         }
     }
@@ -385,7 +398,7 @@ GestureEvent* generateGestureEvent(Gesture* g, uint32_t mask, uint32_t time) {
         if(setReflectionMask(gestureEvent, group)) {}
         else if(generatePinchEvent(gestureEvent, group)) {}
         else {
-            setGestureType(&gestureEvent->detail, GESTURE_UNKNOWN);
+            setGestureType(gestureEvent->detail, GESTURE_UNKNOWN);
         }
         return gestureEvent;
     }
@@ -393,9 +406,9 @@ GestureEvent* generateGestureEvent(Gesture* g, uint32_t mask, uint32_t time) {
         setFlags(g, gestureEvent);
 
     if(g->numPoints == 1)
-        setGestureType(&gestureEvent->detail, GESTURE_TAP);
+        setGestureType(gestureEvent->detail, GESTURE_TAP);
     else
-        gestureEvent->detail = g->info;
+        memcpy(gestureEvent->detail, g->info, sizeof(GestureDetail));
     return gestureEvent;
 }
 
@@ -441,7 +454,7 @@ void endGesture(const TouchEvent event) {
     if(gesture) {
         assert(gesture->numPoints);
         if(gesture->numPoints == 1) {
-            gesture->info.detail[0]=GESTURE_TAP;
+            gesture->info[0]=GESTURE_TAP;
         }
         enqueueEvent(generateGestureEvent(gesture, TouchEndMask, event.time));
         assert(gesture->parent->activeCount);

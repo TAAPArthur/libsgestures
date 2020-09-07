@@ -182,7 +182,7 @@ GestureEvent* getNextGesture() {
             reflectionEvent->flags.reflectionMask = Rotate270Mask;
         else if(reflectionEvent->flags.reflectionMask == Rotate270Mask)
             reflectionEvent->flags.reflectionMask = Rotate90Mask;
-        reflectionEvent->detail = transformGestureDetail(event->detail, reflectionEvent->flags.reflectionMask);
+        transformGestureDetail(reflectionEvent->detail, reflectionEvent->flags.reflectionMask);
     }
     assert(event);
     return event;
