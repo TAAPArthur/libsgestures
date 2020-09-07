@@ -10,7 +10,7 @@
 #define SQ_DIST(P1,P2) SQUARE(P1.x-P2.x)+SQUARE(P1.y-P2.y)
 
 /// Used to determine if a line as a positive, 0 or negative slope
-#define SIGN_THRESHOLD(X) ((X)>.333?1:(X)>=-.333?0:-1)
+#define SIGN_THRESHOLD(X) ((X)>.5?1:(X)>=-.5?0:-1)
 
 GestureType getLineType(const GesturePoint start, const GesturePoint end) {
     double dx = end.x - start.x, dy = end.y - start.y;
