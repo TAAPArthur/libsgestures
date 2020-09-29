@@ -545,3 +545,7 @@ SCUTEST(differentiate_devices) {
     gestureEventLoop(bindings, LEN(bindings));
     assert(getCount() == 2);
 }
+
+int main() {
+    return runUnitTests();
+}

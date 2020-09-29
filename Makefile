@@ -24,7 +24,7 @@ uninstall:
 libsgestures.a: $(SRC:.c=.o)
 	ar rcs $@ $^
 
-test: gesture-test  libinput-gesture-test sgestures-libinput-writer libsgestures.a
+test: gesture-test  libinput-gesture-test
 	./gesture-test
 	./libinput-gesture-test
 
@@ -49,7 +49,7 @@ debug: sgestures-libinput-writer sample-gesture-reader
 	./sgestures-libinput-writer | ./sample-gesture-reader
 
 clean:
-	rm -f *.{o,a} gesture-test
+	rm -f *.{o,a} *-test
 
 .PHONY: clean install uninstall install-headers
 

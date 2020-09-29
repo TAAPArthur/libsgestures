@@ -37,3 +37,6 @@ SCUTEST(close_fd_test) {
     startGestures(NULL, 0, 0);
     dup2(out, STDOUT_FILENO);
 }
+int main() {
+    return runUnitTests();
+}
