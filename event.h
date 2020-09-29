@@ -42,15 +42,9 @@ typedef struct {
 bool matchesGestureEvent(GestureBindingArg* binding, const GestureEvent* event);
 bool matchesGestureFlags(GestureBindingArg* binding, const GestureFlags* flags);
 
-/**
- * @return the number of queued events
- */
-int getGestureEventQueueSize();
-
-GestureEvent* waitForNextGesture();
-GestureEvent* getNextGesture();
-bool isNextGestureReady();
-uint32_t getGestureQueueSize();
-
 void dumpGesture(GestureEvent* event);
+void dumpAndFreeGesture(GestureEvent* event);
+
+
+void registerEventHandler(void (*handler)(GestureEvent* event));
 #endif

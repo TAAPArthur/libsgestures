@@ -124,11 +124,6 @@ static inline GestureType getReflection(TransformMasks mask, GestureType type) {
 
 /// special flags specific to gestures
 typedef struct GestureFlags {
-    /// The number of occurrences of this gesture
-    /// The subsequent, time-sensitive repeat count of this event
-    /// Identical events within GESTURE_MERGE_DELAY_TIME are combined and this count is incremented
-    /// Only applies to events with the same id
-    uint32_t count;
     /// The total distance traveled
     uint32_t totalSqDistance;
     /// The total displacement traveled averaged across all fingers

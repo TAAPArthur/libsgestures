@@ -182,7 +182,7 @@ static Gesture* findGesture(TouchID id) {
     return NULL;
 }
 
-GestureEvent* enqueueEvent(GestureEvent* event);
+void enqueueEvent(GestureEvent* event);
 
 
 
@@ -376,7 +376,6 @@ GestureEvent* generateGestureEvent(Gesture* g, uint32_t mask, uint32_t time) {
         .endPixelPoint = g->lastPixelPoint,
         .flags = {
             .mask = mask,
-            .count = 1,
             .fingers = group->activeCount + group->finishedCount
         }
     };

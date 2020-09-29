@@ -129,10 +129,23 @@ static void endGestureHelper(int fingers) {
         endGestureWrapper(FAKE_DEVICE_ID, n);
 }
 
-static void listenForAllGestures() {
+static GestureEvent* events[100];
+static int gestureEventCounterReader = 0;
+static int gestureEventCounterWriter = 0;
+static GestureEvent* getNextGesture() {
+    if(gestureEventCounterReader == gestureEventCounterWriter)
+        return NULL;
+    return events[gestureEventCounterReader++];
+}
+static void saveGesture(GestureEvent* event) {
+    events[gestureEventCounterWriter++] = event;
+}
+static void setupAsyncGestures() {
+    registerEventHandler(saveGesture);
     listenForGestureEvents(-1);
 }
-SCUTEST_SET_ENV(listenForAllGestures, NULL);
+
+SCUTEST_SET_ENV(setupAsyncGestures, NULL);
 SCUTEST(start_end_gesture) {
     startGestureTap(0);
     endGestureHelper(1);
@@ -256,11 +269,12 @@ struct GestureEventChecker {
     {{GESTURE_EAST}, {{0, 0}, {1, 0}, {2, 0}, {3, 0}, NULL_POINT}},
 };
 
-static void listenForGestureEnd() {
+static void setupAsyncGesturesEnd() {
+    registerEventHandler(saveGesture);
     listenForGestureEvents(GestureEndMask);
 }
 
-SCUTEST_SET_ENV(listenForGestureEnd, NULL);
+SCUTEST_SET_ENV(setupAsyncGesturesEnd, NULL);
 SCUTEST_ITER(validate_line_dir, LEN(gestureEventTuples) * 4) {
     int i = _i / 4;
     int fingers = _i % 2 + 1;
@@ -480,19 +494,6 @@ static int getCount() {
     return count;
 }
 
-static volatile bool shutdown = 0;
-void gestureEventLoop(GestureBinding* bindings, int N) {
-    while(!shutdown) {
-        GestureEvent* event = waitForNextGesture();
-        if(event)
-            triggerGestureBinding(bindings, N, event);
-        free(event);
-    }
-}
-static void requestShutdown() {
-    shutdown = 1;
-}
-static void exitFailure() { exit(10);}
 
 GestureEvent event = {.detail = {GESTURE_TAP}};
 struct GestureBindingEventMatching {
@@ -500,10 +501,10 @@ struct GestureBindingEventMatching {
     GestureBinding binding;
     int count;
 } gestureBindingEventMatching [] = {
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers = 1, }}, {incrementCount, {{GESTURE_TAP}, {.count = 1}}}, 1},
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers = 1, }}, {incrementCount, {{GESTURE_TAP}, {.count = 1}}}, 0},
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers = 1, }}, {incrementCount, {{GESTURE_TAP}, {.count = 2}}}, 1},
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers = 1, }}, {incrementCount, {{GESTURE_UNKNOWN}, {.count = 1}}}, 0},
+    {{.detail = {GESTURE_TAP}, .flags = {.fingers = 1, }}, {incrementCount, {{GESTURE_TAP}, {.fingers = 1}}}, 1},
+    {{.detail = {GESTURE_TAP}, .flags = {.fingers = 2, }}, {incrementCount, {{GESTURE_TAP}, {.fingers = 1}}}, 0},
+    {{.detail = {GESTURE_TAP}, .flags = {.fingers = 2, }}, {incrementCount, {{GESTURE_TAP}, {.fingers = 2}}}, 1},
+    {{.detail = {GESTURE_TAP}, .flags = {.fingers = 1, }}, {incrementCount, {{GESTURE_UNKNOWN}, {.fingers = 1}}}, 0},
 };
 SCUTEST_ITER(gesture_matching, LEN(gestureBindingEventMatching)) {
     struct GestureBindingEventMatching values = gestureBindingEventMatching[_i];
@@ -512,37 +513,20 @@ SCUTEST_ITER(gesture_matching, LEN(gestureBindingEventMatching)) {
     assert(getCount() == values.count);
 }
 
-SCUTEST(double_tap) {
-    void _lambda() {
-        incrementCount();
-        requestShutdown();
-    }
-    GestureBinding bindings[] = {
-        {_lambda, {{}, {.count = 2}}},
-        {exitFailure, {{}, {.count = 1}}}
-    };
-    for(int i = 0; i < 2; i++) {
-        startGestureTap(0);
-        endGestureHelper(1);
-    }
-    gestureEventLoop(bindings, LEN(bindings));
-    assert(getCount() == 1);
-}
-
+static void exitFailure() { exit(10);}
 SCUTEST(differentiate_devices) {
-    void _lambda() {
-        if(getCount() == 2)requestShutdown();
-    }
     GestureBinding bindings[] = {
-        {incrementCount, {{}, {.count = 1}}},
-        {exitFailure, {{}, {.count = 2}}},
-        {_lambda, {{}, {.count = 1}}}
+        {incrementCount, {{}, {.fingers = 1}}},
+        {exitFailure, {{}, {.fingers = 2}}},
     };
-    for(int i = 0; i < 2; i++) {
-        startGestureWrapper(i, 0, (GesturePoint) {0, 0});
-        endGestureWrapper(i, 0);
+    startGestureWrapper(0, 0, (GesturePoint) {0, 0});
+    startGestureWrapper(1, 0, (GesturePoint) {0, 0});
+    endGestureWrapper(1, 0);
+    endGestureWrapper(0, 0);
+    GestureEvent* event;
+    while(event = getNextGesture()) {
+        triggerGestureBinding(bindings, LEN(bindings), event);
     }
-    gestureEventLoop(bindings, LEN(bindings));
     assert(getCount() == 2);
 }
 

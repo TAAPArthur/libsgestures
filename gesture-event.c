@@ -42,68 +42,36 @@ static inline bool bufferPush(RingBuffer* buffer, GestureEvent* event) {
 static inline GestureEvent* bufferPop(RingBuffer* buffer) {
     return buffer->eventBuffer[buffer->bufferIndexRead++ % MAX_BUFFER_SIZE];
 }
-static RingBuffer gestureQueue;
-static RingBuffer touchQueue;
-static GestureEvent* reflectionEvent;
-static bool hasRelectionEvent;
 
-bool ready;
-bool isGestures();
-
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t  condVar = PTHREAD_COND_INITIALIZER;
-void signal() {
-    pthread_mutex_lock(&mutex);
-    ready = 1;
-    pthread_mutex_unlock(&mutex);
-    pthread_cond_signal(&condVar);
-}
-void justWait() {
-    pthread_mutex_lock(&mutex);
-    while(!ready) {
-        pthread_cond_wait(&condVar, &mutex);
-    }
-    pthread_mutex_unlock(&mutex);
-    ready = 0;
-}
-
-static inline unsigned int getTime() {
-    struct timeval start;
-    gettimeofday(&start, NULL);
-    return start.tv_sec * 1000 + start.tv_usec * 1e-3;
-}
-/// Sleeps until GESTURE_MERGE_DELAY_TIME ms have passed since creation
-static inline void waitUntilX(uint32_t time) {
-    uint32_t delta = getTime() - time;
-    struct timespec ts;
-    ts.tv_sec = delta / 1000;
-    ts.tv_nsec = (delta % 1000) * 1000000;
-    if(delta < GESTURE_MERGE_DELAY_TIME)
-        while(nanosleep(&ts, &ts));
-}
 
 
 static uint32_t gestureSelectMask = -1;
 void listenForGestureEvents(uint32_t mask) {
     gestureSelectMask = mask;
 }
-int getGestureEventQueueSize() {
-    return getBufferSize(&gestureQueue);
+static void (*gestureEventHandler)(GestureEvent* event) = dumpGesture;
+void registerEventHandler(void (*handler)(GestureEvent* event)) {
+    gestureEventHandler = handler ? handler : dumpGesture;
 }
 
-GestureEvent* enqueueEvent(GestureEvent* event) {
+void enqueueEvent(GestureEvent* event) {
     assert(event);
     if(event->flags.mask & gestureSelectMask) {
-        if(event->flags.mask & GestureEndMask)
-            bufferPush(&gestureQueue, event);
-        else bufferPush(&touchQueue, event);
+        gestureEventHandler(event);
+        if(event->flags.reflectionMask) {
+            GestureEvent* reflectionEvent = malloc(sizeof(GestureEvent));
+            memcpy(reflectionEvent, event, sizeof(GestureEvent));
+            if(reflectionEvent->flags.reflectionMask == Rotate90Mask)
+                reflectionEvent->flags.reflectionMask = Rotate270Mask;
+            else if(reflectionEvent->flags.reflectionMask == Rotate270Mask)
+                reflectionEvent->flags.reflectionMask = Rotate90Mask;
+            transformGestureDetail(reflectionEvent->detail, reflectionEvent->flags.reflectionMask);
+            gestureEventHandler(reflectionEvent);
+        }
     }
     else {
         free(event);
-        return NULL;
     }
-    signal();
-    return event;
 }
 
 #define INRANGE(field) contains(binding->minFlags.field,binding->maxFlags.field, flags->field)
@@ -117,7 +85,6 @@ static inline bool contains(uint32_t min, uint32_t max, uint32_t value) {
  */
 bool matchesGestureFlags(GestureBindingArg* binding, const GestureFlags* flags) {
     return INRANGE(avgSqDistance) &&
-        INRANGE(count) &&
         INRANGE(duration) &&
         INRANGE(fingers) &&
         INRANGE(totalSqDistance) &&
@@ -134,70 +101,15 @@ bool matchesGestureEvent(GestureBindingArg* binding, const GestureEvent* event) 
     return 0;
 }
 
-bool isNextGestureReady() {
-    return getGestureQueueSize();
-}
-uint32_t getGestureQueueSize() {
-    return (hasRelectionEvent ? 1 : 0) + getBufferSize(&gestureQueue) + getBufferSize(&touchQueue);
-}
-
-bool isDuplicate(GestureEvent* event1, GestureEvent* event2) {
-    return event1->id == event2->id && areDetailsEqual(event1->detail, event2->detail) &&
-        event1->flags.fingers == event2->flags.fingers &&
-        event1->flags.mask == event2->flags.mask;
-}
-
-GestureEvent* getNextGesture() {
-    if(!isNextGestureReady())
-        return NULL;
-    if(hasRelectionEvent) {
-        hasRelectionEvent = 0;
-        return reflectionEvent;
-    }
-    GestureEvent* event;
-    if(!getBufferSize(&touchQueue) || getBufferSize(&gestureQueue) &&
-        bufferPeek(&gestureQueue)->seq < bufferPeek(&touchQueue)->seq) {
-        event = bufferPop(&gestureQueue);
-        waitUntilX(event->time);
-        while(getBufferSize(&gestureQueue)) {
-            uint32_t delta = bufferPeek(&gestureQueue)->time - event->time;
-            if(isDuplicate(event, bufferPeek(&gestureQueue)) && delta <  GESTURE_MERGE_DELAY_TIME) {
-                GestureEvent* temp = bufferPop(&gestureQueue);
-                waitUntilX(temp->time);
-                event->flags.count += 1;
-                free(temp);
-                continue;
-            }
-            break;
-        }
-    }
-    else {
-        event = bufferPop(&touchQueue);
-    }
-    if(event->flags.reflectionMask) {
-        reflectionEvent = malloc(sizeof(GestureEvent));
-        memcpy(reflectionEvent, event, sizeof(GestureEvent));
-        hasRelectionEvent = 1;
-        if(reflectionEvent->flags.reflectionMask == Rotate90Mask)
-            reflectionEvent->flags.reflectionMask = Rotate270Mask;
-        else if(reflectionEvent->flags.reflectionMask == Rotate270Mask)
-            reflectionEvent->flags.reflectionMask = Rotate90Mask;
-        transformGestureDetail(reflectionEvent->detail, reflectionEvent->flags.reflectionMask);
-    }
-    assert(event);
-    return event;
-}
-GestureEvent* waitForNextGesture() {
-    while(!isNextGestureReady()) {
-        justWait();
-    }
-    return getNextGesture();
-}
-
 void dumpGesture(GestureEvent* event) {
     printf("%s", getGestureMaskString(event->flags.mask));
     for(int i = 0; i < getNumOfTypes(event->detail); i++) {
         printf(" %s", getGestureTypeString(getGestureType(event->detail, i)));
     }
     printf("\n");
+}
+
+void dumpAndFreeGesture(GestureEvent* event) {
+    dumpGesture(event);
+    free(event);
 }
