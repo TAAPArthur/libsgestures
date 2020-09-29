@@ -40,8 +40,8 @@ typedef struct {
     ProductID deviceID;
 } GestureBinding ;
 
-bool matchesGestureEvent(GestureBinding*binding, const GestureEvent* event);
-bool matchesGestureFlags(GestureBinding*binding, const GestureFlags* flags);
+bool matchesGestureEvent(GestureBinding* binding, const GestureEvent* event);
+bool matchesGestureFlags(GestureBinding* binding, const GestureFlags* flags);
 
 /**
  * @return the number of queued events

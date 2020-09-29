@@ -24,7 +24,6 @@ SCUTEST(udev_test) {
 }
 
 SCUTEST(close_fd_test) {
-
     int fds[2];
     void func() {
         close(fds[0]);

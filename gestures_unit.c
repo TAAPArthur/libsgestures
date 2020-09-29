@@ -10,7 +10,7 @@
 #define NULL_POINT ((GesturePoint){-1, -1})
 
 GestureType getLineType(const GesturePoint start, const GesturePoint end);
-void triggerGestureBinding(GestureBinding* bindings, int N, const GestureEvent* event){
+void triggerGestureBinding(GestureBinding* bindings, int N, const GestureEvent* event) {
     for(int i = 0; i < N; i++)
         if(matchesGestureEvent(&bindings[i], event))
             bindings[i].func();
@@ -19,7 +19,7 @@ void triggerGestureBinding(GestureBinding* bindings, int N, const GestureEvent* 
 
 static int SCALE_FACTOR = 2 * THRESHOLD_SQ;
 
-SCUTEST_ITER(gesture_types_string , GESTURE_UNKNOWN + 1) {
+SCUTEST_ITER(gesture_types_string, GESTURE_UNKNOWN + 1) {
     getGestureTypeString((GestureType)_i);
 }
 TransformMasks MASKS[] = {MirroredXMask, MirroredYMask, MirroredMask, Rotate90Mask};
@@ -40,7 +40,7 @@ SCUTEST(validate_dir_simple) {
     assert(GESTURE_WEST == getMirroredYDirection(GESTURE_WEST));
     assert(GESTURE_EAST == getMirroredYDirection(GESTURE_EAST));
 }
-SCUTEST_ITER(validate_dir , LEN(gestureTypeTuples)) {
+SCUTEST_ITER(validate_dir, LEN(gestureTypeTuples)) {
     struct GestureChecker values = gestureTypeTuples[_i];
     assert(values.type == getOppositeDirection(values.typeOpposite));
     assert(values.type == getOppositeDirection(getOppositeDirection(values.type)));
@@ -68,35 +68,34 @@ GesturePoint lineDelta[] = {
 
 SCUTEST_ITER(validate_line_type, LEN(lineDelta)) {
     GesturePoint p = lineDelta[_i];
-    if(p.x && p.y){
-        assert(getLineType((GesturePoint){0,0}, p) == _i);
+    if(p.x && p.y) {
+        assert(getLineType((GesturePoint) {0, 0}, p) == _i);
     }
 }
 
 static int FAKE_DEVICE_ID = 0;
 static unsigned int timeCounter = 0;
 static void continueGestureWrapper(ProductID id, int32_t seat, GesturePoint point) {
-    continueGesture((TouchEvent){id, seat, point, point, timeCounter++});
+    continueGesture((TouchEvent) {id, seat, point, point, timeCounter++});
 }
 static void startGestureWrapper(ProductID id, int32_t seat, GesturePoint point) {
-    startGesture((TouchEvent){id, seat, point, point, timeCounter++}, "", "");
+    startGesture((TouchEvent) {id, seat, point, point, timeCounter++}, "", "");
 }
-static void endGestureWrapper(ProductID id, int32_t seat){
-    endGesture((TouchEvent){id, seat, {}, {}, timeCounter++});
+static void endGestureWrapper(ProductID id, int32_t seat) {
+    endGesture((TouchEvent) {id, seat, {}, {}, timeCounter++});
 }
-void cancelGestureWrapper(ProductID id, int32_t seat){
-    cancelGesture((TouchEvent){id, seat, {}, {}, timeCounter++});
+void cancelGestureWrapper(ProductID id, int32_t seat) {
+    cancelGesture((TouchEvent) {id, seat, {}, {}, timeCounter++});
 }
 
 static inline GesturePoint multiplePoint(GesturePoint P, int N) {
-    return (GesturePoint){P.x*=N, P.y*=N};
+    return (GesturePoint) {P.x *= N, P.y *= N};
 }
 static void startGestureWithSteps(const GesturePoint* points, int N, int seat, int steps) {
-    startGestureWrapper(FAKE_DEVICE_ID, seat, multiplePoint(points[0],SCALE_FACTOR) );
+    startGestureWrapper(FAKE_DEVICE_ID, seat, multiplePoint(points[0], SCALE_FACTOR));
     for(int i = 1; i < N; i++) {
         if(memcmp(&points[i], &NULL_POINT, sizeof(GesturePoint)) == 0)
             break;
-
         if(steps) {
             GesturePoint delta;
             delta.x = points[i].x - points[i - 1].x;
@@ -105,15 +104,15 @@ static void startGestureWithSteps(const GesturePoint* points, int N, int seat, i
             GesturePoint p = points[i - 1];
             for(int s = 0; s < steps - 1; s++) {
                 ADD_POINT(p, delta);
-                continueGestureWrapper(FAKE_DEVICE_ID, seat, multiplePoint(p , SCALE_FACTOR) );
+                continueGestureWrapper(FAKE_DEVICE_ID, seat, multiplePoint(p, SCALE_FACTOR));
             }
         }
-        continueGestureWrapper(FAKE_DEVICE_ID, seat, multiplePoint(points[i],SCALE_FACTOR));
+        continueGestureWrapper(FAKE_DEVICE_ID, seat, multiplePoint(points[i], SCALE_FACTOR));
     }
 }
 
 static void startGestureWithPoints(const GesturePoint* points, int N, int seat) {
-    startGestureWithSteps(points, N, seat, 0 );
+    startGestureWithSteps(points, N, seat, 0);
 }
 
 static void startGestureTap(int seat) {
@@ -130,7 +129,7 @@ static void listenForAllGestures() {
     listenForGestureEvents(-1);
 }
 SCUTEST_SET_ENV(listenForAllGestures, NULL);
-SCUTEST(start_end_gesture ) {
+SCUTEST(start_end_gesture) {
     startGestureTap(0);
     endGestureHelper(1);
     GestureEvent* event = getNextGesture();
@@ -144,23 +143,23 @@ SCUTEST(start_end_gesture ) {
     assert(event->flags.mask == GestureEndMask);
     assert(!getNextGesture());
 }
-SCUTEST_ITER(start_continue_end_gesture_tap, 3){
-    int n = _i +1;
-    for(int i = 0;i < n; i++)
+SCUTEST_ITER(start_continue_end_gesture_tap, 3) {
+    int n = _i + 1;
+    for(int i = 0; i < n; i++)
         startGestureTap(i);
     endGestureHelper(n);
-    for(int i = 0; i< 2 * n + 1; i ++) {
+    for(int i = 0; i < 2 * n + 1; i ++) {
         GestureEvent* event = getNextGesture();
         assert(event);
         assert(event->detail[0] == GESTURE_TAP);
     }
 }
 
-SCUTEST(reuse_seats ) {
+SCUTEST(reuse_seats) {
     listenForGestureEvents(GestureEndMask);
     startGestureTap(0);
     int n = 10;
-    for(int i = 1; i < n; i++){
+    for(int i = 1; i < n; i++) {
         startGestureTap(1);
         endGestureWrapper(FAKE_DEVICE_ID, 1);
     }
@@ -170,11 +169,11 @@ SCUTEST(reuse_seats ) {
     assert(event->flags.fingers == n);
 }
 
-SCUTEST(reset_fingers ) {
-    for(int i = 0;i < 10; i++){
+SCUTEST(reset_fingers) {
+    for(int i = 0; i < 10; i++) {
         startGestureTap(0);
         endGestureHelper(1);
-        for(int n = 0; n< 3; n ++) {
+        for(int n = 0; n < 3; n ++) {
             GestureEvent* event = getNextGesture();
             assert(event);
             assert(event->flags.fingers == 1);
@@ -182,39 +181,37 @@ SCUTEST(reset_fingers ) {
     }
 }
 
-SCUTEST(many_points ) {
-
+SCUTEST(many_points) {
     listenForGestureEvents(GestureEndMask);
     int steps = 10000;
-    GesturePoint points[] = {{0,0}, {steps,steps}};
+    GesturePoint points[] = {{0, 0}, {steps, steps}};
     startGestureWithSteps(points, LEN(points), 0, steps);
     endGestureHelper(1);
     GestureEvent* event = getNextGesture();
     assert(event);
-    assert(areDetailsEqual(event->detail, (GestureDetail){GESTURE_SOUTH_EAST}));
+    assert(areDetailsEqual(event->detail, (GestureDetail) {GESTURE_SOUTH_EAST}));
 }
 
-SCUTEST(many_points_cont ) {
-
+SCUTEST(many_points_cont) {
     SCALE_FACTOR = 1;
     listenForGestureEvents(GestureEndMask);
     int steps = 100;
-    GesturePoint points[] = {{0,0}, {steps, steps}};
+    GesturePoint points[] = {{0, 0}, {steps, steps}};
     startGestureWithSteps(points, LEN(points), 0, steps);
     endGestureHelper(1);
     GestureEvent* event = getNextGesture();
     assert(event);
-    assert(areDetailsEqual(event->detail, (GestureDetail){GESTURE_SOUTH_EAST}));
+    assert(areDetailsEqual(event->detail, (GestureDetail) {GESTURE_SOUTH_EAST}));
 }
-SCUTEST(many_lines ) {
+SCUTEST(many_lines) {
     listenForGestureEvents(GestureEndMask);
     int steps = 10000;
     startGestureTap(0);
-    for(int i = 0 ;i < steps; i++) {
-        continueGestureWrapper(FAKE_DEVICE_ID, 0, (GesturePoint){SCALE_FACTOR, 0});
-        continueGestureWrapper(FAKE_DEVICE_ID, 0, (GesturePoint){SCALE_FACTOR, SCALE_FACTOR});
-        continueGestureWrapper(FAKE_DEVICE_ID, 0, (GesturePoint){0, SCALE_FACTOR});
-        continueGestureWrapper(FAKE_DEVICE_ID, 0, (GesturePoint){0, 0});
+    for(int i = 0 ; i < steps; i++) {
+        continueGestureWrapper(FAKE_DEVICE_ID, 0, (GesturePoint) {SCALE_FACTOR, 0});
+        continueGestureWrapper(FAKE_DEVICE_ID, 0, (GesturePoint) {SCALE_FACTOR, SCALE_FACTOR});
+        continueGestureWrapper(FAKE_DEVICE_ID, 0, (GesturePoint) {0, SCALE_FACTOR});
+        continueGestureWrapper(FAKE_DEVICE_ID, 0, (GesturePoint) {0, 0});
     }
     endGestureHelper(1);
     GestureEvent* event = getNextGesture();
@@ -222,16 +219,15 @@ SCUTEST(many_lines ) {
 }
 
 
-SCUTEST(cancel_reset){
+SCUTEST(cancel_reset) {
     listenForGestureEvents(TouchCancelMask | GestureEndMask);
     startGestureTap(0);
     cancelGestureWrapper(FAKE_DEVICE_ID, 0);
-
     startGestureTap(1);
     endGestureWrapper(FAKE_DEVICE_ID, 1);
     GestureEvent* event = getNextGesture();
     assert(event);
-    assert(event->flags.mask == TouchCancelMask );
+    assert(event->flags.mask == TouchCancelMask);
     event = getNextGesture();
     assert(event);
     assert(event->flags.mask == GestureEndMask);
@@ -261,7 +257,7 @@ static void listenForGestureEnd() {
 }
 
 SCUTEST_SET_ENV(listenForGestureEnd, NULL);
-SCUTEST_ITER(validate_line_dir , LEN(gestureEventTuples) * 4) {
+SCUTEST_ITER(validate_line_dir, LEN(gestureEventTuples) * 4) {
     int i = _i / 4;
     int fingers = _i % 2 + 1;
     bool cancel = _i % 4 > 2;
@@ -286,23 +282,22 @@ static int getGesturePointsThatMakeLine(const GestureDetail detail, GesturePoint
     GesturePoint p = {8, 8};
     int count = 1;
     points[0] = p;
-    for(int i = 0; i < getNumOfTypes(detail); i++, count++){
-        GestureType type = getGestureType(detail,i);
+    for(int i = 0; i < getNumOfTypes(detail); i++, count++) {
+        GestureType type = getGestureType(detail, i);
         ADD_POINT(p, lineDelta[type]);
-        points[i+1] = p;
+        points[i + 1] = p;
         if(type != GESTURE_TAP)
             assert(getLineType(points[i], p) == type);
     }
     return count;
 }
-SCUTEST_ITER(validate_masks , LEN(gestureEventTuples)*LEN(MASKS)) {
+SCUTEST_ITER(validate_masks, LEN(gestureEventTuples)*LEN(MASKS)) {
     int index = _i / LEN(MASKS);
     TransformMasks mask = MASKS[_i % LEN(MASKS)];
     struct GestureEventChecker values = gestureEventTuples[index];
     static GesturePoint points[32];
     GestureBinding bindingBase = {};
     memcpy((GestureType*)bindingBase.detail, values.detail, sizeof(GestureDetail));
-
     //GestureBinding bindingRefl = GestureBinding({values.detail}, {}, {.reflectionMask = mask}
     int N;
     N = getGesturePointsThatMakeLine(bindingBase.detail, points);
@@ -354,7 +349,7 @@ struct GestureMultiLineCheck {
         10, 10
     },
 };
-SCUTEST_ITER(multi_lines , LEN(multiLines) * 2) {
+SCUTEST_ITER(multi_lines, LEN(multiLines) * 2) {
     struct GestureMultiLineCheck values = multiLines[_i / 2];
     int step = (_i % 2) * 10;
     for(int i = 0; i < values.fingers; i++)
@@ -405,7 +400,7 @@ struct GenericGestureCheck {
         {GESTURE_UNKNOWN},
     },
 };
-SCUTEST_ITER(generic_gesture , LEN(genericGesture)) {
+SCUTEST_ITER(generic_gesture, LEN(genericGesture)) {
     struct GenericGestureCheck values = genericGesture[_i];
     for(int i = 0; i < LEN(values.points); i++)
         startGestureWithPoints(values.points[i], LEN(values.points[i]), i);
@@ -460,7 +455,7 @@ struct GenericGestureBindingCheck {
         },
     },
 };
-SCUTEST_ITER(generic_gesture_binding , LEN(genericGestureBinding)) {
+SCUTEST_ITER(generic_gesture_binding, LEN(genericGestureBinding)) {
     listenForGestureEvents(GestureEndMask);
     struct GenericGestureBindingCheck values = genericGestureBinding[_i];
     for(int i = 0; i < LEN(values.points); i++)
@@ -468,7 +463,7 @@ SCUTEST_ITER(generic_gesture_binding , LEN(genericGestureBinding)) {
     endGestureHelper(LEN(values.points));
     GestureEvent* event = getNextGesture();
     assert(event);
-    assert(matchesGestureEvent(&values.bindings[0], event)|| matchesGestureEvent(&values.bindings[1], event));
+    assert(matchesGestureEvent(&values.bindings[0], event) || matchesGestureEvent(&values.bindings[1], event));
     assert(matchesGestureEvent(&values.bindings[0], event));
     event = getNextGesture();
     assert(matchesGestureEvent(&values.bindings[1], event));
@@ -484,16 +479,16 @@ static int getCount() {
 static volatile bool shutdown = 0;
 void gestureEventLoop(GestureBinding* bindings, int N) {
     while(!shutdown) {
-        GestureEvent*event=waitForNextGesture();
+        GestureEvent* event = waitForNextGesture();
         if(event)
-            triggerGestureBinding(bindings,N, event);
+            triggerGestureBinding(bindings, N, event);
         free(event);
     }
 }
-static void requestShutdown(){
+static void requestShutdown() {
     shutdown = 1;
 }
-static void exitFailure(){ exit(10);}
+static void exitFailure() { exit(10);}
 
 GestureEvent event = {.detail = {GESTURE_TAP}};
 struct GestureBindingEventMatching {
@@ -501,25 +496,24 @@ struct GestureBindingEventMatching {
     GestureBinding binding;
     int count;
 } gestureBindingEventMatching [] = {
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers=1, }}, {{GESTURE_TAP}, incrementCount, {.count = 1}}, 1},
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers=1, }}, {{GESTURE_TAP}, incrementCount, {.count = 1}}, 0},
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers=1, }}, {{GESTURE_TAP}, incrementCount, {.count = 2}}, 1},
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers=1, }}, {{GESTURE_UNKNOWN}, incrementCount, {.count = 1}}, 0},
+    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers = 1, }}, {{GESTURE_TAP}, incrementCount, {.count = 1}}, 1},
+    {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers = 1, }}, {{GESTURE_TAP}, incrementCount, {.count = 1}}, 0},
+    {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers = 1, }}, {{GESTURE_TAP}, incrementCount, {.count = 2}}, 1},
+    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers = 1, }}, {{GESTURE_UNKNOWN}, incrementCount, {.count = 1}}, 0},
 };
-SCUTEST_ITER(gesture_matching , LEN(gestureBindingEventMatching)) {
+SCUTEST_ITER(gesture_matching, LEN(gestureBindingEventMatching)) {
     struct GestureBindingEventMatching values = gestureBindingEventMatching[_i];
-
-    assert(matchesGestureEvent(&values.binding, &values.event)== values.count);
+    assert(matchesGestureEvent(&values.binding, &values.event) == values.count);
     triggerGestureBinding(&values.binding, 1, &values.event);
     assert(getCount() == values.count);
 }
 
-SCUTEST(double_tap ) {
-
+SCUTEST(double_tap) {
     void _lambda() {
-        incrementCount(); requestShutdown();
+        incrementCount();
+        requestShutdown();
     }
-    GestureBinding bindings[] ={
+    GestureBinding bindings[] = {
         {{}, _lambda, {.count = 2}},
         {{}, exitFailure, {.count = 1}}
     };
@@ -531,21 +525,19 @@ SCUTEST(double_tap ) {
     assert(getCount() == 1);
 }
 
-SCUTEST(differentiate_devices ) {
+SCUTEST(differentiate_devices) {
     void _lambda() {
         if(getCount() == 2)requestShutdown();
     }
-    GestureBinding bindings[] ={
+    GestureBinding bindings[] = {
         {{}, incrementCount, {.count = 1}},
         {{}, exitFailure, {.count = 2}},
         {{}, _lambda, {.count = 1}}
     };
-
     for(int i = 0; i < 2; i++) {
-        startGestureWrapper(i, 0, (GesturePoint){0, 0});
+        startGestureWrapper(i, 0, (GesturePoint) {0, 0});
         endGestureWrapper(i, 0);
     }
-
     gestureEventLoop(bindings, LEN(bindings));
     assert(getCount() == 2);
 }

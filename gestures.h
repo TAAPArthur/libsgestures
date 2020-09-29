@@ -33,7 +33,7 @@ typedef enum {
     Rotate90Mask = 4,
     Rotate270Mask = 8,
 
-}TransformMasks ;
+} TransformMasks ;
 /**
  * Only Gesture with mask contained by mask will able to trigger events
  * By default all gestures are considered
@@ -173,5 +173,5 @@ const char* getGestureTypeString(GestureType t);
 
 const char* getGestureMaskString(GestureMask mask);
 
-ProductID __attribute__((weak)) generateIDHighBits(ProductID id, GesturePoint startingGesturePoint );
+ProductID __attribute__((weak)) generateIDHighBits(ProductID id, GesturePoint startingGesturePoint);
 #endif

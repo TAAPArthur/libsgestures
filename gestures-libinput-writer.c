@@ -29,7 +29,7 @@
 static int open_restricted(const char* path, int flags, void* user_data) {
     bool* grab = (bool*)user_data;
     int fd = open(path, flags);
-    if(fd >= 0 && grab && *grab && ioctl(fd, EVIOCGRAB, &grab) == -1){
+    if(fd >= 0 && grab && *grab && ioctl(fd, EVIOCGRAB, &grab) == -1) {
         char buffer[256] = "Grab requested, but failed for " ;
         strncat(buffer, path, 200);
         perror(buffer);
@@ -81,13 +81,11 @@ static inline int getYInPixels(struct libinput_event_touch* event) {
 void processTouchEvent(struct libinput_event_touch* event, enum libinput_event_type type) {
     GesturePoint point = {};
     GesturePoint pointPixel = {};
-
     int32_t seat;
     struct libinput_device* inputDevice;
     uint32_t id;
     uint32_t time;
     GestureMask mask = 0;
-
     switch(type) {
         default:
             break;
@@ -109,8 +107,8 @@ void processTouchEvent(struct libinput_event_touch* event, enum libinput_event_t
             break;
         case LIBINPUT_EVENT_TOUCH_MOTION:
         case LIBINPUT_EVENT_TOUCH_DOWN:
-            point = (GesturePoint){ (int)getX(event), (int)getY(event)};
-            pointPixel = (GesturePoint){(int)getXInPixels(event), (int)getYInPixels(event)};
+            point = (GesturePoint) { (int)getX(event), (int)getY(event)};
+            pointPixel = (GesturePoint) {(int)getXInPixels(event), (int)getYInPixels(event)};
             [[fallthrough]];
         case LIBINPUT_EVENT_TOUCH_CANCEL:
         case LIBINPUT_EVENT_TOUCH_UP:
@@ -150,11 +148,11 @@ static void listenForGestures(struct libinput* li) {
     struct libinput_event* event;
     uint32_t fd = libinput_get_fd(li);
     // POLLERR | POLLHUP are always implicitly selected
-    struct pollfd fds[3] = {{fd, POLLIN | POLLHUP},{STDOUT_FILENO, POLLERR | POLLHUP}, {(short)dummyFD, POLLIN}};
+    struct pollfd fds[3] = {{fd, POLLIN | POLLHUP}, {STDOUT_FILENO, POLLERR | POLLHUP}, {(short)dummyFD, POLLIN}};
     isListening = 1;
     while(isListening) {
         poll(fds, LEN(fds), -1);
-        if(fds[0].revents & (POLLERR|POLLHUP) || fds[1].revents & (POLLERR|POLLHUP)) {
+        if(fds[0].revents & (POLLERR | POLLHUP) || fds[1].revents & (POLLERR | POLLHUP)) {
             break;
         }
         if(fds[2].revents & POLLIN == 0) {
