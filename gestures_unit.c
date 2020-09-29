@@ -10,9 +10,13 @@
 #define NULL_POINT ((GesturePoint){-1, -1})
 
 GestureType getLineType(const GesturePoint start, const GesturePoint end);
+typedef struct {
+    void(*const func)();
+    GestureBindingArg arg;
+} GestureBinding;
 void triggerGestureBinding(GestureBinding* bindings, int N, const GestureEvent* event) {
     for(int i = 0; i < N; i++)
-        if(matchesGestureEvent(&bindings[i], event))
+        if(matchesGestureEvent(&bindings[i].arg, event))
             bindings[i].func();
 }
 
@@ -296,7 +300,7 @@ SCUTEST_ITER(validate_masks, LEN(gestureEventTuples)*LEN(MASKS)) {
     TransformMasks mask = MASKS[_i % LEN(MASKS)];
     struct GestureEventChecker values = gestureEventTuples[index];
     static GesturePoint points[32];
-    GestureBinding bindingBase = {};
+    GestureBindingArg bindingBase = {};
     memcpy((GestureType*)bindingBase.detail, values.detail, sizeof(GestureDetail));
     //GestureBinding bindingRefl = GestureBinding({values.detail}, {}, {.reflectionMask = mask}
     int N;
@@ -412,7 +416,7 @@ SCUTEST_ITER(generic_gesture, LEN(genericGesture)) {
 
 struct GenericGestureBindingCheck {
     GesturePoint points[2][3];
-    GestureBinding bindings[2];
+    GestureBindingArg bindings[2];
 } genericGestureBinding[] = {
     {
         {
@@ -420,8 +424,8 @@ struct GenericGestureBindingCheck {
             {{2, 2}, {1, 1}, NULL_POINT},
         },
         {
-            {{GESTURE_NORTH_WEST}, NULL, {.fingers = 2, .reflectionMask = MirroredMask}},
-            {{GESTURE_SOUTH_EAST}, NULL, {.fingers = 2, .reflectionMask = MirroredMask}},
+            {{GESTURE_NORTH_WEST}, {.fingers = 2, .reflectionMask = MirroredMask}},
+            {{GESTURE_SOUTH_EAST}, {.fingers = 2, .reflectionMask = MirroredMask}},
         },
     },
     {
@@ -430,8 +434,8 @@ struct GenericGestureBindingCheck {
             {{8, 8}, {7, 8}, {7, 9}},
         },
         {
-            {{GESTURE_WEST, GESTURE_SOUTH}, NULL, {.fingers = 2, .reflectionMask = MirroredXMask}},
-            {{GESTURE_EAST, GESTURE_SOUTH}, NULL, {.fingers = 2, .reflectionMask = MirroredXMask}},
+            {{GESTURE_WEST, GESTURE_SOUTH}, {.fingers = 2, .reflectionMask = MirroredXMask}},
+            {{GESTURE_EAST, GESTURE_SOUTH}, {.fingers = 2, .reflectionMask = MirroredXMask}},
         },
     },
     {
@@ -440,8 +444,8 @@ struct GenericGestureBindingCheck {
             {{7, 9}, {7, 8}, {8, 8}},
         },
         {
-            {{GESTURE_NORTH, GESTURE_EAST}, NULL, {.fingers = 2, .reflectionMask = MirroredXMask}},
-            {{GESTURE_NORTH, GESTURE_WEST}, NULL, {.fingers = 2, .reflectionMask = MirroredXMask}},
+            {{GESTURE_NORTH, GESTURE_EAST}, {.fingers = 2, .reflectionMask = MirroredXMask}},
+            {{GESTURE_NORTH, GESTURE_WEST}, {.fingers = 2, .reflectionMask = MirroredXMask}},
         },
     },
     {
@@ -450,8 +454,8 @@ struct GenericGestureBindingCheck {
             {{8, 8}, {8, 7}, {9, 7}},
         },
         {
-            {{GESTURE_NORTH, GESTURE_EAST}, NULL, {.fingers = 2, .reflectionMask = MirroredYMask}},
-            {{GESTURE_SOUTH, GESTURE_EAST}, NULL, {.fingers = 2, .reflectionMask = MirroredYMask}},
+            {{GESTURE_NORTH, GESTURE_EAST}, {.fingers = 2, .reflectionMask = MirroredYMask}},
+            {{GESTURE_SOUTH, GESTURE_EAST}, {.fingers = 2, .reflectionMask = MirroredYMask}},
         },
     },
 };
@@ -496,14 +500,14 @@ struct GestureBindingEventMatching {
     GestureBinding binding;
     int count;
 } gestureBindingEventMatching [] = {
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers = 1, }}, {{GESTURE_TAP}, incrementCount, {.count = 1}}, 1},
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers = 1, }}, {{GESTURE_TAP}, incrementCount, {.count = 1}}, 0},
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers = 1, }}, {{GESTURE_TAP}, incrementCount, {.count = 2}}, 1},
-    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers = 1, }}, {{GESTURE_UNKNOWN}, incrementCount, {.count = 1}}, 0},
+    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers = 1, }}, {incrementCount, {{GESTURE_TAP}, {.count = 1}}}, 1},
+    {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers = 1, }}, {incrementCount, {{GESTURE_TAP}, {.count = 1}}}, 0},
+    {{.detail = {GESTURE_TAP}, .flags = {.count = 2, .fingers = 1, }}, {incrementCount, {{GESTURE_TAP}, {.count = 2}}}, 1},
+    {{.detail = {GESTURE_TAP}, .flags = {.count = 1, .fingers = 1, }}, {incrementCount, {{GESTURE_UNKNOWN}, {.count = 1}}}, 0},
 };
 SCUTEST_ITER(gesture_matching, LEN(gestureBindingEventMatching)) {
     struct GestureBindingEventMatching values = gestureBindingEventMatching[_i];
-    assert(matchesGestureEvent(&values.binding, &values.event) == values.count);
+    assert(matchesGestureEvent(&values.binding.arg, &values.event) == values.count);
     triggerGestureBinding(&values.binding, 1, &values.event);
     assert(getCount() == values.count);
 }
@@ -514,8 +518,8 @@ SCUTEST(double_tap) {
         requestShutdown();
     }
     GestureBinding bindings[] = {
-        {{}, _lambda, {.count = 2}},
-        {{}, exitFailure, {.count = 1}}
+        {_lambda, {{}, {.count = 2}}},
+        {exitFailure, {{}, {.count = 1}}}
     };
     for(int i = 0; i < 2; i++) {
         startGestureTap(0);
@@ -530,9 +534,9 @@ SCUTEST(differentiate_devices) {
         if(getCount() == 2)requestShutdown();
     }
     GestureBinding bindings[] = {
-        {{}, incrementCount, {.count = 1}},
-        {{}, exitFailure, {.count = 2}},
-        {{}, _lambda, {.count = 1}}
+        {incrementCount, {{}, {.count = 1}}},
+        {exitFailure, {{}, {.count = 2}}},
+        {_lambda, {{}, {.count = 1}}}
     };
     for(int i = 0; i < 2; i++) {
         startGestureWrapper(i, 0, (GesturePoint) {0, 0});

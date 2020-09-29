@@ -33,15 +33,14 @@ typedef struct {
 typedef struct {
     /// special flags specific to gestures
     const GestureDetail detail;
-    void(*const func)();
     const GestureFlags minFlags;
     const GestureFlags maxFlags;
     ProductID regionID;
     ProductID deviceID;
-} GestureBinding ;
+} GestureBindingArg ;
 
-bool matchesGestureEvent(GestureBinding* binding, const GestureEvent* event);
-bool matchesGestureFlags(GestureBinding* binding, const GestureFlags* flags);
+bool matchesGestureEvent(GestureBindingArg* binding, const GestureEvent* event);
+bool matchesGestureFlags(GestureBindingArg* binding, const GestureFlags* flags);
 
 /**
  * @return the number of queued events

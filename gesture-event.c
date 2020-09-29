@@ -115,7 +115,7 @@ static inline bool contains(uint32_t min, uint32_t max, uint32_t value) {
  * @param flags from an event
  * @return 1 iff this GestureBinding's flags are compatible with flags
  */
-bool matchesGestureFlags(GestureBinding* binding, const GestureFlags* flags) {
+bool matchesGestureFlags(GestureBindingArg* binding, const GestureFlags* flags) {
     return INRANGE(avgSqDistance) &&
         INRANGE(count) &&
         INRANGE(duration) &&
@@ -125,7 +125,7 @@ bool matchesGestureFlags(GestureBinding* binding, const GestureFlags* flags) {
         binding->minFlags.reflectionMask == flags->reflectionMask;
 }
 
-bool matchesGestureEvent(GestureBinding* binding, const GestureEvent* event) {
+bool matchesGestureEvent(GestureBindingArg* binding, const GestureEvent* event) {
     if((!binding->regionID || binding->regionID == GESTURE_REGION_ID(event)) &&
         (!binding->deviceID || binding->deviceID == GESTURE_DEVICE_ID(event)) &&
         matchesGestureFlags(binding, &event->flags))
