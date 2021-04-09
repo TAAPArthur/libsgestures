@@ -4,7 +4,7 @@
  * Reads TouchEvents written by gestures-libpinput-writer
  */
 #include <unistd.h>
-#include <sys/poll.h>
+#include <poll.h>
 
 #include "gestures-private.h"
 #include "touch.h"

@@ -1,12 +1,12 @@
-DEBUGGING_FLAGS := -std=c11 -g -rdynamic -O0 -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-sign-compare -Wno-parentheses -Wno-missing-braces
-RELEASE_FLAGS ?= -std=c11 -O3 -DNDEBUG -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-parentheses -Wno-missing-braces
+DEBUGGING_FLAGS := -std=c99 -g -rdynamic -O0 -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-sign-compare -Wno-parentheses -Wno-missing-braces
+RELEASE_FLAGS ?= -std=c99 -O3 -DNDEBUG -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-parentheses -Wno-missing-braces
 CFLAGS ?= $(RELEASE_FLAGS)
 LDFLAGS := -lm
 SRC := gesture-event.c gestures-reader.c gestures-recorder.c
 pkgname := sgestures
 
 
-all: libsgestures.a sample-gesture-reader sgestures-libinput-writer
+all: libsgestures.a sgestures-libinput-writer
 
 install-headers:
 	install -m 0744 -Dt "$(DESTDIR)/usr/include/$(pkgname)/" *.h
@@ -33,7 +33,7 @@ sgestures.sh: sgestures.sh.template
 	sed "s/CFLAGS:-__place__holder/CFLAGS:-'${CFLAGS}'/g; s/LDFLAGS:-__place__holder/LDFLAGS:-'${LDFLAGS}'/g" $< > $@
 
 sgestures-libinput-writer: gestures-libinput-writer.o
-	$(CC) $(CFLAGS) $^ -o $@ -ludev -linput
+	$(CC) $(CFLAGS) $^ -o $@ -linput -lm -ludev -levdev -lmtdev
 
 gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
 gesture-test: $(SRC:.c=.o) gestures_unit.o
@@ -53,7 +53,7 @@ debug: sgestures-libinput-writer sample-gesture-reader
 	./sgestures-libinput-writer | ./sample-gesture-reader
 
 clean:
-	rm -f *.{o,a} *-test
+	rm -f *.o *.a *-test
 
 .PHONY: clean install uninstall install-headers
 

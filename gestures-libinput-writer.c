@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/eventfd.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <unistd.h>
 
 #include "touch.h"
@@ -109,7 +109,7 @@ void processTouchEvent(struct libinput_event_touch* event, enum libinput_event_t
         case LIBINPUT_EVENT_TOUCH_DOWN:
             point = (GesturePoint) { (int)getX(event), (int)getY(event)};
             pointPixel = (GesturePoint) {(int)getXInPixels(event), (int)getYInPixels(event)};
-            [[fallthrough]];
+             __attribute__ ((fallthrough));
         case LIBINPUT_EVENT_TOUCH_CANCEL:
         case LIBINPUT_EVENT_TOUCH_UP:
             inputDevice = libinput_event_get_device((struct libinput_event*)event);
