@@ -1,4 +1,3 @@
-CC := gcc
 DEBUGGING_FLAGS := -std=c11 -g -rdynamic -O0 -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-sign-compare -Wno-parentheses -Wno-missing-braces
 RELEASE_FLAGS ?= -std=c11 -O3 -DNDEBUG -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-parentheses -Wno-missing-braces
 CFLAGS ?= $(RELEASE_FLAGS)
