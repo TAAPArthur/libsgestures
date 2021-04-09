@@ -192,5 +192,5 @@ int __attribute__((weak)) main(int argc, char* const argv[]) {
         i++;
         grab = 1;
     }
-    startGestures((const char**)argv, argc - i, grab);
+    startGestures((const char**)(argv + 1), argc - i, grab);
 }
