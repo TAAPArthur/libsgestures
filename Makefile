@@ -12,9 +12,11 @@ all: libsgestures.a sample-gesture-reader sgestures-libinput-writer
 install-headers:
 	install -m 0744 -Dt "$(DESTDIR)/usr/include/$(pkgname)/" *.h
 
-install: install-headers sgestures-libinput-writer libsgestures.a
+install: install-headers sgestures-libinput-writer libsgestures.a sgestures.sh
 	install -m 0744 -Dt "$(DESTDIR)/usr/lib/" libsgestures.a
 	install -m 0755 -Dt "$(DESTDIR)/usr/bin/" sgestures-libinput-writer
+	install -m 0755 sgestures.sh "$(DESTDIR)/usr/bin/sgestures"
+	install -m 0755 -Dt "$(DESTDIR)/usr/share/sgestures/" sample-gesture-reader.c
 
 uninstall:
 	rm -f "$(DESTDIR)/usr/lib/libsgestures.a"
@@ -27,6 +29,9 @@ libsgestures.a: $(SRC:.c=.o)
 test: gesture-test  libinput-gesture-test
 	./gesture-test
 	./libinput-gesture-test
+
+sgestures.sh: sgestures.sh.template
+	sed "s/CFLAGS:-__place__holder/CFLAGS:-'${CFLAGS}'/g; s/LDFLAGS:-__place__holder/LDFLAGS:-'${LDFLAGS}'/g" $< > $@
 
 sgestures-libinput-writer: gestures-libinput-writer.o
 	$(CC) $(CFLAGS) $^ -o $@ -ludev -linput

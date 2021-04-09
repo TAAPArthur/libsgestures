@@ -1,0 +1,23 @@
+#!/bin/sh
+
+SGESTURES_BIN_NAME=${SGESTURES_BIN_NAME:-sgestures}
+SGESTURES_HOME=${SGESTURES_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/sgestures}
+
+recompile() {
+    if [ ! -d "$SGESTURES_HOME" ]; then
+        mkdir -p "$SGESTURES_HOME"
+        cp /usr/share/sgestures/sample-gesture-reader.c config.c
+    fi
+    export CFLAGS=${CFLAGS:-__place__holder}
+    export LDFLAGS=${LDFLAGS:-__place__holder}
+    # shellcheck disable=SC2086
+    ${CC:-cc} "$SGESTURES_HOME"/*.c -o "$SGESTURES_HOME/$SGESTURES_BIN_NAME" $CFLAGS $LDFLAGS -lsgestures "$@"
+}
+
+if [ "$1" = "-r" ] || [ "$1" = "--recompile" ]; then
+    recompile "$@"
+    exit
+fi
+
+[ -x "$SGESTURES_HOME/$SGESTURES_BIN_NAME" ] || recompile
+"$SGESTURES_HOME/$SGESTURES_BIN_NAME"
