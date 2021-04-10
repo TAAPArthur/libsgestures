@@ -36,7 +36,7 @@ sgestures-libinput-writer: gestures-libinput-writer.o
 	$(CC) $(CFLAGS) $^ -o $@ -linput -lm -ludev -levdev -lmtdev
 
 gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
-gesture-test: $(SRC:.c=.o) gestures_unit.o
+gesture-test: gestures_unit.o $(SRC:.c=.o)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lscutest
 
 libinput-gesture-test: CFLAGS := $(DEBUGGING_FLAGS)

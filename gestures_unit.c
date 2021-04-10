@@ -530,6 +530,35 @@ SCUTEST(differentiate_devices) {
     assert(getCount() == 2);
 }
 
+static int counter = 0;
+ProductID generateIDHighBits(const TouchEvent* event) {
+    assert(event);
+    return counter;
+}
+
+SCUTEST(differentiate_devices_custom) {
+    GestureBinding bindings[] = {
+        {incrementCount, {{}, {.fingers = 1}}},
+        {exitFailure, {{}, {.fingers = 2}}},
+    };
+    counter=1;
+    startGestureWrapper(0, 0, (GesturePoint) {0, 0});
+    counter=2;
+    startGestureWrapper(0, 0, (GesturePoint) {0, 0});
+    counter=1;
+    endGestureWrapper(0, 0);
+    counter=2;
+    endGestureWrapper(0, 0);
+    GestureEvent* event;
+    while(event = getNextGesture()) {
+        int regionId = GESTURE_REGION_ID(event);
+        assert(regionId);
+        assert(regionId == 1 || regionId == 2);
+        triggerGestureBinding(bindings, LEN(bindings), event);
+    }
+    assert(getCount() == 2);
+}
+
 int main() {
     return runUnitTests();
 }

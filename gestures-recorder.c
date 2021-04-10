@@ -400,7 +400,7 @@ void startGesture(const TouchEvent event, const char* sysName, const char* name)
     GestureGroupID gestureGroupID = generateID(&event);
     GestureGroup* group = findGroup(gestureGroupID);
     if(!group) {
-        group = addGroup(event.id, sysName, name);
+        group = addGroup(gestureGroupID, sysName, name);
     }
     assert(group == findGroup(gestureGroupID));
     Gesture* gesture = createGesture(group, event);
