@@ -30,9 +30,9 @@ typedef struct Gesture {
     bool finished;
     GestureDetail info;
     GesturePoint firstPoint;
-    GesturePoint firstPixelPoint;
+    GesturePoint firstPercentPoint;
     GesturePoint lastPoint;
-    GesturePoint lastPixelPoint;
+    GesturePoint lastPercentPoint;
     GestureType lastDir;
     int numPoints;
     uint32_t start;
@@ -84,7 +84,7 @@ static inline bool addGesturePoint(Gesture* g, GesturePoint point, GesturePoint 
     }
     g->numPoints++;
     g->lastPoint = point;
-    g->lastPixelPoint = pixelPoint;
+    g->lastPercentPoint = pixelPoint;
     return 1;
 }
 
@@ -99,13 +99,12 @@ typedef struct GestureGroup {
 } GestureGroup ;
 static GestureGroup root;
 
-ProductID __attribute__((weak)) generateIDHighBits(ProductID id __attribute__((unused)),
-    GesturePoint startingGesturePoint __attribute__((unused))) {
+ProductID __attribute__((weak)) generateIDHighBits(const TouchEvent* touchEvent __attribute__((unused))) {
     return 0;
 }
-static GestureGroupID generateID(ProductID id, GesturePoint startingGesturePoint) {
-    int regionID = generateIDHighBits(id, startingGesturePoint);
-    return (((GestureGroupID)regionID) << 32L) | ((GestureGroupID)id)  ;
+static GestureGroupID generateID(const TouchEvent* event) {
+    int regionID = generateIDHighBits(event);
+    return (((GestureGroupID)regionID) << 32L) | ((GestureGroupID)event->id)  ;
 }
 
 static TouchID generateTouchID(ProductID id, uint32_t seat) {
@@ -143,9 +142,9 @@ static Gesture* createGesture(GestureGroup* group, TouchEvent event) {
     gesture->next = group->root.next;
     group->root.next = gesture;
     gesture->firstPoint = event.point;
-    gesture->firstPixelPoint = event.pointPixel;
+    gesture->firstPercentPoint = event.pointPercent;
     gesture->start = event.time;
-    addGesturePoint(gesture, event.point, event.pointPixel, 1);
+    addGesturePoint(gesture, event.point, event.pointPercent, 1);
     group->activeCount++;
     return gesture;
 }
@@ -373,7 +372,7 @@ GestureEvent* generateGestureEvent(Gesture* g, uint32_t mask, uint32_t time) {
         .id = group->id,
         .time = time,
         .endPoint = g->lastPoint,
-        .endPixelPoint = g->lastPixelPoint,
+        .endPercentPoint = g->lastPercentPoint,
         .flags = {
             .mask = mask,
             .fingers = group->activeCount + group->finishedCount
@@ -398,7 +397,7 @@ GestureEvent* generateGestureEvent(Gesture* g, uint32_t mask, uint32_t time) {
 }
 
 void startGesture(const TouchEvent event, const char* sysName, const char* name) {
-    GestureGroupID gestureGroupID = generateID(event.id, event.point);
+    GestureGroupID gestureGroupID = generateID(&event);
     GestureGroup* group = findGroup(gestureGroupID);
     if(!group) {
         group = addGroup(event.id, sysName, name);
@@ -414,7 +413,7 @@ void continueGesture(const TouchEvent event) {
     Gesture* gesture = findGesture(id);
     if(gesture) {
         if(!gesture->truncated) {
-            bool newGesturePoint = addGesturePoint(gesture, event.point, event.pointPixel, 0);
+            bool newGesturePoint = addGesturePoint(gesture, event.point, event.pointPercent, 0);
             enqueueEvent(generateGestureEvent(gesture, newGesturePoint ? TouchMotionMask : TouchHoldMask, event.time));
         }
     }

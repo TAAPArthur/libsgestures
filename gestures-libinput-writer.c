@@ -70,12 +70,11 @@ static inline double getY(struct libinput_event_touch* event) {
     return libinput_event_touch_get_y(event);
 }
 
-#define GESTURE_PIXEL_REF  100
-static inline int getXInPixels(struct libinput_event_touch* event) {
-    return libinput_event_touch_get_x_transformed(event, GESTURE_PIXEL_REF);
+static inline int getXInPercent(struct libinput_event_touch* event) {
+    return libinput_event_touch_get_x_transformed(event, 100);
 }
-static inline int getYInPixels(struct libinput_event_touch* event) {
-    return libinput_event_touch_get_y_transformed(event, GESTURE_PIXEL_REF);
+static inline int getYInPercent(struct libinput_event_touch* event) {
+    return libinput_event_touch_get_y_transformed(event, 100);
 }
 
 void processTouchEvent(struct libinput_event_touch* event, enum libinput_event_type type) {
@@ -108,7 +107,7 @@ void processTouchEvent(struct libinput_event_touch* event, enum libinput_event_t
         case LIBINPUT_EVENT_TOUCH_MOTION:
         case LIBINPUT_EVENT_TOUCH_DOWN:
             point = (GesturePoint) { (int)getX(event), (int)getY(event)};
-            pointPixel = (GesturePoint) {(int)getXInPixels(event), (int)getYInPixels(event)};
+            pointPixel = (GesturePoint) {(int)getXInPercent(event), (int)getYInPercent(event)};
              __attribute__ ((fallthrough));
         case LIBINPUT_EVENT_TOUCH_CANCEL:
         case LIBINPUT_EVENT_TOUCH_UP:

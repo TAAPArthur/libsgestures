@@ -34,7 +34,7 @@ typedef struct TouchEvent {
     uint32_t id;
     int32_t seat;
     GesturePoint point;
-    GesturePoint pointPixel;
+    GesturePoint pointPercent;
     uint32_t time;
 } TouchEvent ;
 

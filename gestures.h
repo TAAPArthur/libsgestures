@@ -168,5 +168,5 @@ const char* getGestureTypeString(GestureType t);
 
 const char* getGestureMaskString(GestureMask mask);
 
-ProductID __attribute__((weak)) generateIDHighBits(ProductID id, GesturePoint startingGesturePoint);
+ProductID __attribute__((weak)) generateIDHighBits(const TouchEvent* event);
 #endif

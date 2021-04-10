@@ -25,7 +25,7 @@ typedef struct {
     uint32_t time;
     /// The last point of the gesture
     GesturePoint endPoint;
-    GesturePoint endPixelPoint;
+    GesturePoint endPercentPoint;
 } GestureEvent ;
 /**
  * Gesture specific bindings
