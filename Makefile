@@ -29,9 +29,6 @@ test: gesture-test  libinput-gesture-test
 	./gesture-test
 	./libinput-gesture-test
 
-sgestures.sh: sgestures.sh.template
-	sed "s/CFLAGS:-__place__holder/CFLAGS:-'${CFLAGS}'/g; s/LDFLAGS:-__place__holder/LDFLAGS:-'${LDFLAGS}'/g" $< > $@
-
 sgestures-libinput-writer: gestures-libinput-writer.o
 	$(CC) $(CFLAGS) $^ -o $@ -linput -lm -ludev -levdev -lmtdev
 
