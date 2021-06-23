@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-SGESTURES_DATA_DIR=${XDG_DATA_DIR:-$HOME/local/.share}/sgestures
+SGESTURES_DATA_DIR=${XDG_DATA_DIR:-$HOME/.local/.share}/sgestures
 SGESTURES_BIN="$SGESTURES_DATA_DIR/${SGESTURES_BIN_NAME:-sgestures}"
 SGESTURES_HOME=${SGESTURES_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/sgestures}
 
