@@ -1,16 +1,17 @@
+#define SCUTEST_DEFINE_MAIN
+#define SCUTEST_IMPLEMENTATION
 #include <assert.h>
-#include <stdlib.h>
-#include <scutest/tester.h>
+#include <scutest/scutest.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
-#include <stdio.h>
-
-#include "event.h"
-#include "gestures-private.h"
-#include "gestures.h"
-#include "touch.h"
-#include "writer.h"
+#include "../event.h"
+#include "../gestures-private.h"
+#include "../gestures.h"
+#include "../touch.h"
+#include "../writer.h"
 
 SCUTEST_ERR(bad_path, 1) {
     const char* path = "/dev/null";
@@ -22,12 +23,12 @@ SCUTEST(udev_test) {
     alarm(1);
     startGestures(NULL, 0, 0);
 }
+static int fds[2];
+static void func() {
+    close(fds[0]);
+}
 
 SCUTEST(close_fd_test) {
-    int fds[2];
-    void func() {
-        close(fds[0]);
-    }
     int out = dup(STDOUT_FILENO);
     pipe(fds);
     dup2(fds[1], STDOUT_FILENO);
@@ -36,7 +37,4 @@ SCUTEST(close_fd_test) {
     alarm(1);
     startGestures(NULL, 0, 0);
     dup2(out, STDOUT_FILENO);
-}
-int main() {
-    return runUnitTests();
 }

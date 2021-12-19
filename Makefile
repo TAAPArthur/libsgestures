@@ -33,12 +33,12 @@ sgestures-libinput-writer: gestures-libinput-writer.o
 	$(CC) $(CFLAGS) $^ -o $@ -linput -lm -ludev -levdev -lmtdev
 
 gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
-gesture-test: gestures_unit.o $(SRC:.c=.o)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lscutest
+gesture-test: tests/gestures_unit.o $(SRC:.c=.o)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 libinput-gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
-libinput-gesture-test: $(SRC:.c=.o) libinput_gestures_unit.o  gestures-libinput-writer.o
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lscutest -ludev -linput
+libinput-gesture-test: $(SRC:.c=.o) tests/libinput_gestures_unit.o  gestures-libinput-writer.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -ludev -linput
 
 
 sample-gesture-reader: CFLAGS := $(DEBUGGING_FLAGS)
@@ -50,7 +50,7 @@ debug: sgestures-libinput-writer sample-gesture-reader
 	./sgestures-libinput-writer | ./sample-gesture-reader
 
 clean:
-	rm -f *.o *.a *-test
+	rm -f *.o tests/*.o  *.a *-test
 
 .PHONY: clean install uninstall install-headers
 

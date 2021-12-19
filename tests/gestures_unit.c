@@ -1,11 +1,13 @@
+#define SCUTEST_DEFINE_MAIN
+#define SCUTEST_IMPLEMENTATION
 #include <assert.h>
+#include <scutest/scutest.h>
 #include <stdlib.h>
-#include <scutest/tester.h>
 
-#include "event.h"
-#include "gestures-private.h"
-#include "gestures.h"
-#include "touch.h"
+#include "../event.h"
+#include "../gestures-private.h"
+#include "../gestures.h"
+#include "../touch.h"
 
 #define NULL_POINT ((GesturePoint){-1, -1})
 
@@ -557,8 +559,4 @@ SCUTEST(differentiate_devices_custom) {
         triggerGestureBinding(bindings, LEN(bindings), event);
     }
     assert(getCount() == 2);
-}
-
-int main() {
-    return runUnitTests();
 }
