@@ -14,7 +14,7 @@ bool isTouchEventReady(int32_t fd) {
     return poll(&event, 2, -1) > 0 && event.revents & POLLIN;
 }
 
-#define safe_read(FD, VAR, SIZE)if(read(FD, VAR, SIZE)==0) return 0;
+#define safe_read(FD, VAR, SIZE)do {int ret = read(FD, VAR, SIZE); if(ret <= 0) return ret;} while(0)
 bool readTouchEvent(uint32_t fd) {
     char bufferSysName[DEVICE_NAME_LEN];
     char bufferDeviceName[DEVICE_NAME_LEN];
