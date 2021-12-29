@@ -1,8 +1,7 @@
 #include <sgestures/event.h>
 
-#include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 int main(int argc, char* const argv[]) {
     GestureMask mask = argc > 1 ?  atoi(argv[1]) : GestureEndMask;

@@ -5,6 +5,7 @@
  */
 #include <unistd.h>
 #include <poll.h>
+#include <string.h>
 
 #include "gestures-private.h"
 #include "touch.h"
@@ -16,29 +17,23 @@ bool isTouchEventReady(int32_t fd) {
 
 #define safe_read(FD, VAR, SIZE)do {int ret = read(FD, VAR, SIZE); if(ret <= 0) return ret;} while(0)
 bool readTouchEvent(uint32_t fd) {
-    char bufferSysName[DEVICE_NAME_LEN];
-    char bufferDeviceName[DEVICE_NAME_LEN];
+    char buffer[DEVICE_NAME_LEN * 2];
     char size;
-    GestureMask mask;
-    TouchEvent touchEvent;
-    safe_read(fd, &mask, sizeof(mask));
-    safe_read(fd, &touchEvent, sizeof(touchEvent));
-    switch(mask) {
+    RawGestureEvent event;
+    safe_read(fd, &event, sizeof(event));
+    switch(event.mask) {
         case TouchStartMask:
-            safe_read(fd, &size, sizeof(size));
-            safe_read(fd, bufferSysName, size);
-            safe_read(fd, &size, sizeof(size));
-            safe_read(fd, bufferDeviceName, size);
-            startGesture(touchEvent,  bufferSysName, bufferDeviceName);
+            safe_read(fd, buffer, event.totalNameLen);
+            startGesture(event.touchEvent,  buffer, buffer + strnlen(buffer, DEVICE_NAME_LEN));
             break;
         case TouchMotionMask:
-            continueGesture(touchEvent);
+            continueGesture(event.touchEvent);
             break;
         case TouchEndMask:
-            endGesture(touchEvent);
+            endGesture(event.touchEvent);
             break;
         case TouchCancelMask:
-            cancelGesture(touchEvent);
+            cancelGesture(event.touchEvent);
         default:
             break;
     }

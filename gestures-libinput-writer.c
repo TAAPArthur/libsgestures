@@ -115,19 +115,12 @@ void processTouchEvent(struct libinput_event_touch* event, enum libinput_event_t
             id = libinput_device_get_id_product(inputDevice);
             seat = libinput_event_touch_get_seat_slot(event);
             time = libinput_event_touch_get_time(event);
-            write(1, &mask, sizeof(mask));
-            TouchEvent touchEvent = {id, seat, point, pointPixel, time};
-            write(1, &touchEvent, sizeof(TouchEvent));
-            if(type == LIBINPUT_EVENT_TOUCH_DOWN) {
-                const char* buffer = libinput_device_get_sysname(inputDevice);
-                char size = strlen(buffer) + 1;
-                write(1, &size, sizeof(size));
-                write(1, buffer, size);
-                buffer = libinput_device_get_name(inputDevice);
-                size = strlen(buffer) + 1;
-                write(1, &size, sizeof(size));
-                write(1, buffer, size);
+
+            LargestRawGestureEvent event = {{mask, {id, seat, point, pointPixel, time}}};
+            if(mask == TouchStartMask) {
+                setRawGestureEventNames(&event, libinput_device_get_sysname(inputDevice), libinput_device_get_name(inputDevice));
             }
+            writeTouchEvent(STDOUT_FILENO, &event.event);
             break;
     }
 }

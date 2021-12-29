@@ -3,7 +3,6 @@
 
 #define LEN(X) (sizeof X / sizeof X[0])
 
-#define DEVICE_NAME_LEN 256
 
 #define ADD_POINT(dest, delta) do{dest.x+=delta.x; dest.y+=delta.y;}while(0)
 #define DIVIDE_POINT(P, N) do{P.x/=N; P.y/=N;}while(0)

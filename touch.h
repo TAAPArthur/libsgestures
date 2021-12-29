@@ -1,7 +1,9 @@
 #ifndef LIB_SGESUTRES_TOUCH_H_
 #define LIB_SGESUTRES_TOUCH_H_
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+
+#define DEVICE_NAME_LEN 64
 
 /// @{ GestureMasks
 /// Triggered when a gesture group ends
@@ -41,6 +43,31 @@ typedef struct TouchEvent {
 
 bool readTouchEvent(uint32_t fd);
 bool isTouchEventReady(int32_t fd);
+
+typedef struct {
+    GestureMask mask;
+    TouchEvent touchEvent;
+    char totalNameLen;
+    char names[];
+} RawGestureEvent;
+
+typedef struct {
+    RawGestureEvent event;
+    char buffer[255];
+} LargestRawGestureEvent;
+
+
+static inline int writeTouchEvent(int fd, const RawGestureEvent* event) {
+    return write(fd, event, sizeof(RawGestureEvent) + event->totalNameLen);
+}
+
+static inline void setRawGestureEventNames(LargestRawGestureEvent* event, const char* sysname, const char* devname) {
+    char* dest = strncpy(event->buffer, sysname, DEVICE_NAME_LEN);
+    *dest = 0;
+    dest = strncpy(dest + 1, devname, DEVICE_NAME_LEN);
+    *dest = 0;
+    event->event.totalNameLen = dest - event->buffer;
+}
 
 /**
  * Starts a gesture
