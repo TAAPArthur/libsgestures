@@ -47,7 +47,7 @@ sample-gesture-reader: sample-gesture-reader.o $(SRC:.c=.o)
 
 debug: CFLAGS := $(DEBUGGING_FLAGS)
 debug: sgestures-libinput-writer sample-gesture-reader
-	./sgestures-libinput-writer | ./sample-gesture-reader
+	./sgestures-libinput-writer | ./sample-gesture-reader $(MASK)
 
 clean:
 	rm -f *.o tests/*.o  *.a *-test
