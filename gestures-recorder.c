@@ -34,6 +34,9 @@ typedef struct Gesture {
     GesturePoint lastPoint;
     GesturePoint lastPercentPoint;
     GestureType lastDir;
+
+    int pendingCount;
+    GestureType pendingDir;
     int numPoints;
     uint32_t start;
     GestureFlags flags;
@@ -56,8 +59,13 @@ bool areDetailsEqual(const GestureDetail detail, const GestureDetail detail2) {
 }
 
 
-static inline void addGestureType(GestureDetail detail, GestureType type) {
-    detail[getNumOfTypes(detail)] = type;
+static inline bool addGestureType(Gesture* g, GestureType type) {
+    if(getNumOfTypes(g->info) == MAX_GESTURE_DETAIL_SIZE) {
+        g->truncated = true;
+        return 0;
+    }
+    g->info[getNumOfTypes(g->info)] = type;
+    return 1;
 }
 
 static inline void setGestureType(GestureDetail detail, GestureType type) {
@@ -74,13 +82,18 @@ static inline bool addGesturePoint(Gesture* g, GesturePoint point, GesturePoint 
         g->flags.totalSqDistance = g->flags.totalSqDistance + distance;
         GestureType dir = getLineType(g->lastPoint, point);
         if(dir != g->lastDir) {
-            if(getNumOfTypes(g->info) == MAX_GESTURE_DETAIL_SIZE) {
-                g->truncated = true;
-                return 0;
+            if(g->pendingDir != dir) {
+                g->pendingDir = dir;
+                g->pendingCount = 0;
             }
-            addGestureType(g->info, dir);
-            g->lastDir = dir;
+            if(++g->pendingCount >= MIN_LINE_LEN) {
+                g->pendingCount = 0;
+                if(addGestureType(g, dir))
+                    g->lastDir = dir;
+            }
         }
+        else
+            g->pendingCount = 0;
     }
     g->numPoints++;
     g->lastPoint = point;

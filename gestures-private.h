@@ -9,6 +9,11 @@
 
 /// The consecutive points within this distance are considered the same and not double counted
 #define THRESHOLD_SQ (256)
+#ifndef DEBUG
+#define MIN_LINE_LEN (256)
+#else
+#define MIN_LINE_LEN (1)
+#endif
 /// All seat of a gesture have to start/end within this sq distance of each other
 #define PINCH_THRESHOLD_PERCENT .4
 /// The cutoff for when a sequence of points forms a line
