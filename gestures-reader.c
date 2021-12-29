@@ -35,7 +35,7 @@ bool readTouchEvent(uint32_t fd) {
         case TouchCancelMask:
             cancelGesture(event.touchEvent);
         default:
-            break;
+            return -1;
     }
     return 1;
 }
