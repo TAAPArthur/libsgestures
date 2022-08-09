@@ -56,19 +56,6 @@ typedef struct {
     char buffer[255];
 } LargestRawGestureEvent;
 
-
-static inline int writeTouchEvent(int fd, const RawGestureEvent* event) {
-    return write(fd, event, sizeof(RawGestureEvent) + event->totalNameLen);
-}
-
-static inline void setRawGestureEventNames(LargestRawGestureEvent* event, const char* sysname, const char* devname) {
-    char* dest = strncpy(event->buffer, sysname, DEVICE_NAME_LEN);
-    *dest = 0;
-    dest = strncpy(dest + 1, devname, DEVICE_NAME_LEN);
-    *dest = 0;
-    event->event.totalNameLen = dest - event->buffer;
-}
-
 /**
  * Starts a gesture
  *

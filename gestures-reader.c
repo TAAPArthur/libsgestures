@@ -3,9 +3,10 @@
  *
  * Reads TouchEvents written by gestures-libpinput-writer
  */
-#include <unistd.h>
+#define _POSIX_SOURCE
 #include <poll.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "gestures-private.h"
 #include "touch.h"
@@ -18,7 +19,6 @@ bool isTouchEventReady(int32_t fd) {
 #define safe_read(FD, VAR, SIZE)do {int ret = read(FD, VAR, SIZE); if(ret <= 0) return ret;} while(0)
 bool readTouchEvent(uint32_t fd) {
     char buffer[DEVICE_NAME_LEN * 2];
-    char size;
     RawGestureEvent event;
     safe_read(fd, &event, sizeof(event));
     switch(event.mask) {
@@ -34,6 +34,7 @@ bool readTouchEvent(uint32_t fd) {
             break;
         case TouchCancelMask:
             cancelGesture(event.touchEvent);
+            break;
         default:
             return -1;
     }

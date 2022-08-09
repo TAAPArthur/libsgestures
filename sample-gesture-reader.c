@@ -1,4 +1,4 @@
-#include <sgestures/event.h>
+#include "event.h"
 
 #include <stdlib.h>
 #include <unistd.h>
