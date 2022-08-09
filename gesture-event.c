@@ -93,17 +93,18 @@ bool matchesGestureFlags(GestureBindingArg* binding, const GestureFlags* flags) 
 }
 
 bool matchesGestureEvent(GestureBindingArg* binding, const GestureEvent* event) {
-    if((!binding->regionID || binding->regionID == GESTURE_REGION_ID(event)) &&
+    if ((!binding->regionID || binding->regionID == GESTURE_REGION_ID(event)) &&
         (!binding->deviceID || binding->deviceID == GESTURE_DEVICE_ID(event)) &&
         matchesGestureFlags(binding, &event->flags))
-        if((!getNumOfTypes(binding->detail) || areDetailsEqual(binding->detail, event->detail)))
+        if ((!getNumOfTypes(binding->detail) || areDetailsEqual(binding->detail, event->detail)))
             return 1;
     return 0;
 }
 
 void dumpGesture(GestureEvent* event) {
-    printf("%s", getGestureMaskString(event->flags.mask));
-    for(int i = 0; i < getNumOfTypes(event->detail); i++) {
+    printf("%s: Fingers %d duration %dms", getGestureMaskString(event->flags.mask),
+            event->flags.fingers, event->flags.duration);
+    for (int i = 0; i < getNumOfTypes(event->detail); i++) {
         printf(" %s", getGestureTypeString(getGestureType(event->detail, i)));
     }
     printf("\n");
