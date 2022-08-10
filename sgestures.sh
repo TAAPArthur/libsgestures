@@ -19,6 +19,7 @@ if [ "$1" = "-r" ] || [ "$1" = "--recompile" ]; then
     recompile "$@"
     exit
 fi
+[ -d "$SGESTURES_HOME" ] || exec /usr/libexec/sgestures
 
 [ -x "$SGESTURES_BIN" ] || recompile
 exec "$SGESTURES_BIN"

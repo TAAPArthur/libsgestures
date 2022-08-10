@@ -6,21 +6,23 @@ SRC := gesture-event.c gestures-reader.c gestures-recorder.c
 pkgname := sgestures
 
 
-all: libsgestures.a sgestures-libinput-writer
+all: libsgestures.a sgestures-libinput-writer sgestures
 
 install-headers:
 	install -m 0744 -Dt "$(DESTDIR)/usr/include/$(pkgname)/" *.h
 
-install: install-headers sgestures-libinput-writer libsgestures.a sgestures.sh
+install: install-headers sgestures-libinput-writer libsgestures.a sgestures.sh sgestures
 	install -m 0744 -Dt "$(DESTDIR)/usr/lib/" libsgestures.a
 	install -m 0755 -Dt "$(DESTDIR)/usr/bin/" sgestures-libinput-writer
 	install -m 0755 sgestures.sh "$(DESTDIR)/usr/bin/sgestures"
 	install -m 0755 -Dt "$(DESTDIR)/usr/share/sgestures/" sample-gesture-reader.c
+	install -m 0755 -Dt "$(DESTDIR)/usr/libexec/" sgestures
 
 uninstall:
 	rm -f "$(DESTDIR)/usr/lib/libsgestures.a"
 	rm -f "$(DESTDIR)/usr/bin/sgestures-libinput-writer"
 	rm -rdf "$(DESTDIR)/usr/include/$(pkgname)"
+	rm "$(DESTDIR)/usr/libexec/$(pkgname)"
 
 libsgestures.a: $(SRC:.c=.o)
 	ar rcs $@ $^
@@ -28,6 +30,9 @@ libsgestures.a: $(SRC:.c=.o)
 test: gesture-test  libinput-gesture-test
 	./gesture-test
 	./libinput-gesture-test
+
+config.c: sample-gesture-reader.c
+	cp $^ $@
 
 sgestures-libinput-writer: gestures-libinput-writer.o
 	$(CC) $(CFLAGS) $^ -o $@ -linput -lm -ludev -levdev -lmtdev
@@ -40,17 +45,17 @@ libinput-gesture-test: CFLAGS := $(DEBUGGING_FLAGS)
 libinput-gesture-test: $(SRC:.c=.o) tests/libinput_gestures_unit.o  gestures-libinput-writer.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -ludev -linput
 
+sgestures: config.o $(SRC:.c=.o)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-sample-gesture-reader: CFLAGS := $(DEBUGGING_FLAGS)
 sample-gesture-reader: sample-gesture-reader.o $(SRC:.c=.o)
-	$(CC) $(CFLAGS) $^ -o $@ -lm
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-debug: CFLAGS := $(DEBUGGING_FLAGS)
 debug: sgestures-libinput-writer sample-gesture-reader
 	./sgestures-libinput-writer | ./sample-gesture-reader $(MASK)
 
 clean:
-	rm -f *.o tests/*.o  *.a *-test
+	rm -f *.o tests/*.o *.a *-test sgestures sample-gesture-reader sgestures-libinput-writer
 
 .PHONY: clean install uninstall install-headers
 
