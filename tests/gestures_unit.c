@@ -131,6 +131,19 @@ static void endGestureHelper(int fingers) {
         endGestureWrapper(FAKE_DEVICE_ID, n);
 }
 
+static void freeGesture(GestureEvent* event) {
+    assert(event->id != -1);
+    memset(event, -1, sizeof(GestureEvent));
+    free(event);
+}
+
+SCUTEST(free_gestures) {
+    registerEventHandler(freeGesture);
+    listenForGestureEvents(-1);
+    startGestureTap(0);
+    endGestureHelper(1);
+}
+
 static GestureEvent* events[100];
 static int gestureEventCounterReader = 0;
 static int gestureEventCounterWriter = 0;
@@ -486,6 +499,7 @@ SCUTEST_ITER(generic_gesture_binding, LEN(genericGestureBinding)) {
     assert(matchesGestureEvent(&values.bindings[0], event) || matchesGestureEvent(&values.bindings[1], event));
     assert(matchesGestureEvent(&values.bindings[0], event));
     event = getNextGesture();
+    assert(event);
     assert(matchesGestureEvent(&values.bindings[1], event));
 }
 static int count;

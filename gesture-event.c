@@ -49,23 +49,26 @@ static uint32_t gestureSelectMask = -1;
 void listenForGestureEvents(uint32_t mask) {
     gestureSelectMask = mask;
 }
-static void (*gestureEventHandler)(GestureEvent* event) = dumpGesture;
+static void (*gestureEventHandler)(GestureEvent* event) = dumpAndFreeGesture;
 void registerEventHandler(void (*handler)(GestureEvent* event)) {
-    gestureEventHandler = handler ? handler : dumpGesture;
+    gestureEventHandler = handler ? handler : dumpAndFreeGesture;
 }
 
 void enqueueEvent(GestureEvent* event) {
     assert(event);
-    if(event->flags.mask & gestureSelectMask) {
-        gestureEventHandler(event);
-        if(event->flags.reflectionMask) {
-            GestureEvent* reflectionEvent = malloc(sizeof(GestureEvent));
+    if (event->flags.mask & gestureSelectMask) {
+        GestureEvent* reflectionEvent = NULL;
+        if (event->flags.reflectionMask) {
+            reflectionEvent = malloc(sizeof(GestureEvent));
             memcpy(reflectionEvent, event, sizeof(GestureEvent));
             if(reflectionEvent->flags.reflectionMask == Rotate90Mask)
                 reflectionEvent->flags.reflectionMask = Rotate270Mask;
             else if(reflectionEvent->flags.reflectionMask == Rotate270Mask)
                 reflectionEvent->flags.reflectionMask = Rotate90Mask;
             transformGestureDetail(reflectionEvent->detail, reflectionEvent->flags.reflectionMask);
+        }
+        gestureEventHandler(event);
+        if (reflectionEvent) {
             gestureEventHandler(reflectionEvent);
         }
     }
