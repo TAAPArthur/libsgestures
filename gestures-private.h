@@ -10,7 +10,7 @@
 /// The consecutive points within this distance are considered the same and not double counted
 #define THRESHOLD_SQ (256)
 #ifndef DEBUG
-#define MIN_LINE_LEN (256)
+#define MIN_LINE_LEN (2)
 #else
 #define MIN_LINE_LEN (1)
 #endif

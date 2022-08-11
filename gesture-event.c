@@ -56,6 +56,7 @@ void registerEventHandler(void (*handler)(GestureEvent* event)) {
 
 void enqueueEvent(GestureEvent* event) {
     assert(event);
+    assert(getNumOfTypes(event->detail));
     if (event->flags.mask & gestureSelectMask) {
         GestureEvent* reflectionEvent = NULL;
         if (event->flags.reflectionMask) {
