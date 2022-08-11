@@ -17,6 +17,8 @@ typedef struct {
     uint32_t seq;
     /// identifier use to potentially combine identical gestures
     GestureGroupID id;
+    /// id of last touch event
+    TouchID lastEventId;
     /// Describes the gesture
     GestureDetail detail;
     /// Used to match GestureBindings

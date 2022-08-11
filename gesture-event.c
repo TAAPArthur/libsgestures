@@ -105,11 +105,15 @@ bool matchesGestureEvent(GestureBindingArg* binding, const GestureEvent* event) 
 }
 
 void dumpGesture(GestureEvent* event) {
-    printf("%s: Fingers %d duration %dms", getGestureMaskString(event->flags.mask),
-            event->flags.fingers, event->flags.duration);
+    printf("ID: %d %d %s: Fingers %d duration %dms", GESTURE_DEVICE_ID(event), event->lastEventId,
+        getGestureMaskString(event->flags.mask),
+        event->flags.fingers, event->flags.duration);
     for (int i = 0; i < getNumOfTypes(event->detail); i++) {
         printf(" %s", getGestureTypeString(getGestureType(event->detail, i)));
     }
+#ifdef DEBUG
+    printf(" (%d, %d) (%d%%, %d%%)", event->endPoint.x, event->endPoint.y, event->endPercentPoint.x, event->endPercentPoint.y);
+#endif
     printf("\n");
 }
 

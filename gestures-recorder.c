@@ -383,6 +383,7 @@ GestureEvent* generateGestureEvent(Gesture* g, uint32_t mask, uint32_t time) {
     *gestureEvent = (GestureEvent) {
         .seq = ++gestureEventSeqCounter,
         .id = group->id,
+        .lastEventId = g->id,
         .time = time,
         .endPoint = g->lastPoint,
         .endPercentPoint = g->lastPercentPoint,
