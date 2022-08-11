@@ -1,6 +1,9 @@
 DEBUGGING_FLAGS := -std=c99 -g -rdynamic -O0 -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-sign-compare -Wno-parentheses -Wno-missing-braces -DDEBUG
-RELEASE_FLAGS ?= -std=c99 -O3 -DNDEBUG -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-parentheses -Wno-missing-braces
-CFLAGS ?= $(RELEASE_FLAGS)
+RELEASE_FLAGS = -std=c99 -O3 -DNDEBUG -Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-parentheses -Wno-missing-braces
+CFLAGS_0 = $(RELEASE_FLAGS)
+CFLAGS_1 = $(DEBUGGING_FLAGS)
+DEBUG = 0
+CFLAGS ?= $(CFLAGS_$(DEBUG))
 LDFLAGS := -lm
 SRC := gesture-event.c gestures-reader.c gestures-recorder.c
 pkgname := sgestures
