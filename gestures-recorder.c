@@ -385,6 +385,9 @@ GestureEvent* generateGestureEvent(Gesture* g, uint32_t mask, uint32_t time) {
         .id = group->id,
         .lastEventId = g->id,
         .time = time,
+        .startPoint = g->firstPoint,
+        .endPoint = g->firstPercentPoint,
+        .endPercentPoint = g->lastPercentPoint,
         .endPoint = g->lastPoint,
         .endPercentPoint = g->lastPercentPoint,
         .flags = {

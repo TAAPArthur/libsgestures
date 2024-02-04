@@ -213,28 +213,25 @@ SCUTEST(reset_fingers) {
     }
 }
 
-SCUTEST(many_points) {
-    listenForGestureEvents(GestureEndMask);
+SCUTEST(many_points, .iter = 2) {
     int steps = 10000;
+    if (_i) {
+        SCALE_FACTOR = 8;
+        steps = 100;
+    }
+    listenForGestureEvents(GestureEndMask);
     GesturePoint points[] = {{0, 0}, {steps, steps}};
     startGestureWithSteps(points, LEN(points), 0, steps);
     endGestureHelper(1);
     GestureEvent* event = getNextGesture();
     assert(event);
     assert(areDetailsEqual(event->detail, (GestureDetail) {GESTURE_SOUTH_EAST}));
+    assert(event->startPoint.x == 0);
+    assert(event->startPoint.y == 0);
+    assert(event->endPoint.x == steps * SCALE_FACTOR);
+    assert(event->endPoint.y == steps * SCALE_FACTOR);
 }
 
-SCUTEST(many_points_cont) {
-    SCALE_FACTOR = 1;
-    listenForGestureEvents(GestureEndMask);
-    int steps = 100;
-    GesturePoint points[] = {{0, 0}, {steps, steps}};
-    startGestureWithSteps(points, LEN(points), 0, steps);
-    endGestureHelper(1);
-    GestureEvent* event = getNextGesture();
-    assert(event);
-    assert(areDetailsEqual(event->detail, (GestureDetail) {GESTURE_SOUTH_EAST}));
-}
 SCUTEST(many_lines) {
     listenForGestureEvents(GestureEndMask);
     int steps = 10000;
