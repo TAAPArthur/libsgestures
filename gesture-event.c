@@ -112,6 +112,7 @@ void dumpGesture(GestureEvent* event) {
         printf(" %s", getGestureTypeString(getGestureType(event->detail, i)));
     }
 #ifdef DEBUG
+    printf(" (%d, %d) (%d%%, %d%%)", event->startPoint.x, event->startPoint.y, event->startPercentPoint.x, event->startPercentPoint.y);
     printf(" (%d, %d) (%d%%, %d%%)", event->endPoint.x, event->endPoint.y, event->endPercentPoint.x, event->endPercentPoint.y);
 #endif
     printf("\n");

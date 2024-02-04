@@ -25,6 +25,9 @@ typedef struct {
     GestureFlags flags;
     /// the time this event was created
     uint32_t time;
+
+    GesturePoint startPoint;
+    GesturePoint startPercentPoint;
     /// The last point of the gesture
     GesturePoint endPoint;
     GesturePoint endPercentPoint;

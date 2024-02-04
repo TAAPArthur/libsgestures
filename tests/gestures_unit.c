@@ -213,28 +213,27 @@ SCUTEST(reset_fingers) {
     }
 }
 
-SCUTEST(many_points) {
-    listenForGestureEvents(GestureEndMask);
+SCUTEST(many_points, .iter = 2) {
     int steps = 10000;
+    listenForGestureEvents(GestureEndMask);
     GesturePoint points[] = {{0, 0}, {steps, steps}};
+    if (_i) {
+        SCALE_FACTOR = 8;
+        steps = 100;
+        points[0].x = 1;
+        points[0].y = 1;
+    }
     startGestureWithSteps(points, LEN(points), 0, steps);
     endGestureHelper(1);
     GestureEvent* event = getNextGesture();
     assert(event);
     assert(areDetailsEqual(event->detail, (GestureDetail) {GESTURE_SOUTH_EAST}));
+    assert(event->startPoint.x == points[0].x * SCALE_FACTOR);
+    assert(event->startPoint.y == points[0].y * SCALE_FACTOR);
+    assert(event->endPoint.x == points[1].x * SCALE_FACTOR);
+    assert(event->endPoint.y == points[1].y * SCALE_FACTOR);
 }
 
-SCUTEST(many_points_cont) {
-    SCALE_FACTOR = 1;
-    listenForGestureEvents(GestureEndMask);
-    int steps = 100;
-    GesturePoint points[] = {{0, 0}, {steps, steps}};
-    startGestureWithSteps(points, LEN(points), 0, steps);
-    endGestureHelper(1);
-    GestureEvent* event = getNextGesture();
-    assert(event);
-    assert(areDetailsEqual(event->detail, (GestureDetail) {GESTURE_SOUTH_EAST}));
-}
 SCUTEST(many_lines) {
     listenForGestureEvents(GestureEndMask);
     int steps = 10000;
