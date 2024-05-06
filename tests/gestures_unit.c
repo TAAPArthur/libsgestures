@@ -1,7 +1,7 @@
 #define SCUTEST_DEFINE_MAIN
 #define SCUTEST_IMPLEMENTATION
+#include "scutest.h"
 #include <assert.h>
-#include <scutest/scutest.h>
 #include <stdlib.h>
 
 #include "../event.h"
