@@ -27,9 +27,9 @@
  * @return the file descriptor corresponding to the opened file
  */
 static int open_restricted(const char* path, int flags, void* user_data) {
-    bool* grab = (bool*)user_data;
+    bool grab = (bool)user_data;
     int fd = open(path, flags);
-    if(fd >= 0 && grab && *grab && ioctl(fd, EVIOCGRAB, &grab) == -1) {
+    if(fd >= 0 && grab && ioctl(fd, EVIOCGRAB, &grab) == -1) {
         char buffer[256] = "Grab requested, but failed for " ;
         strncat(buffer, path, 200);
         perror(buffer);
@@ -53,12 +53,12 @@ static struct libinput_interface interface = {
 static struct udev* udev = NULL;
 struct libinput* createUdevInterface(bool grab) {
     udev = udev_new();
-    struct libinput* li = libinput_udev_create_context(&interface, &grab, udev);
+    struct libinput* li = libinput_udev_create_context(&interface, (void*)(long)grab, udev);
     libinput_udev_assign_seat(li, "seat0");
     return li;
 }
 struct libinput* createPathInterface(const char** paths, int num, bool grab) {
-    struct libinput* li = libinput_path_create_context(&interface, &grab);
+    struct libinput* li = libinput_path_create_context(&interface, (void*)(long)grab);
     for(int i = 0; i < num; i++)
         libinput_path_add_device(li, paths[i]);
     return li;
