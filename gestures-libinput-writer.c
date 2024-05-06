@@ -6,15 +6,14 @@
 #include <fcntl.h>
 #include <libinput.h>
 #include <linux/input.h>
+#include <poll.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/eventfd.h>
-#include <poll.h>
 #include <unistd.h>
 
+#include "gestures-private.h"
 #include "touch.h"
 #include "writer.h"
-#include "gestures-private.h"
 
 /**
  * Opens a path with given flags. Path probably references an input device and likely starts with  /dev/input/
@@ -54,13 +53,17 @@ static struct udev* udev = NULL;
 struct libinput* createUdevInterface(bool grab) {
     udev = udev_new();
     struct libinput* li = libinput_udev_create_context(&interface, (void*)(long)grab, udev);
-    libinput_udev_assign_seat(li, "seat0");
+    if (li) {
+        libinput_udev_assign_seat(li, "seat0");
+    }
     return li;
 }
 struct libinput* createPathInterface(const char** paths, int num, bool grab) {
     struct libinput* li = libinput_path_create_context(&interface, (void*)(long)grab);
-    for(int i = 0; i < num; i++)
-        libinput_path_add_device(li, paths[i]);
+    if (li) {
+        for(int i = 0; i < num; i++)
+            libinput_path_add_device(li, paths[i]);
+    }
     return li;
 }
 static inline double getX(struct libinput_event_touch* event) {
@@ -124,44 +127,42 @@ void processTouchEvent(struct libinput_event_touch* event, enum libinput_event_t
             break;
     }
 }
+
 static volatile bool isListening = 0;
-static int dummyFD;
-void wakeupLibInputListener() {
-    char num = 100;
-    write(dummyFD, &num, sizeof(num));
-}
 void stopGestures() {
     isListening = 0;
-    wakeupLibInputListener();
 }
 
-static void listenForGestures(struct libinput* li) {
-    dummyFD = eventfd(0, EFD_CLOEXEC);
-    struct libinput_event* event;
-    uint32_t fd = libinput_get_fd(li);
-    // POLLERR | POLLHUP are always implicitly selected
-    struct pollfd fds[3] = {{fd, POLLIN | POLLHUP}, {STDOUT_FILENO, POLLERR | POLLHUP}, {(short)dummyFD, POLLIN}};
+static int listenForGestures(struct libinput* li) {
+    int libinput_fd = libinput_get_fd(li);
+    struct pollfd fds[2] = {{libinput_fd, POLLIN}, {STDOUT_FILENO, 0}};
     isListening = 1;
     while(isListening) {
-        poll(fds, LEN(fds), -1);
-        if(fds[0].revents & (POLLERR | POLLHUP) || fds[1].revents & (POLLERR | POLLHUP)) {
-            break;
+        int ret = poll(fds, LEN(fds), -1);
+        if (ret == -1) {
+            if (errno == EAGAIN || errno == ENOMEM)
+                continue;
+            return -2;
         }
-        if(fds[2].revents & POLLIN == 0) {
-            char c;
-            read(dummyFD, &c, sizeof(char));
-            continue;
-        }
-        libinput_dispatch(li);
-        while(event = libinput_get_event(li)) {
-            enum libinput_event_type type = libinput_event_get_type(event);
-            processTouchEvent((struct libinput_event_touch*)event, type);
-            libinput_event_destroy(event);
-            libinput_dispatch(li);
+        for (int i = 0; i < LEN(fds); i++) {
+            if (fds[i].revents & POLLIN) {
+                if (fds[i].fd == libinput_fd) {
+                    if (libinput_dispatch(li)) {
+                        return -1;
+                    }
+                    struct libinput_event* event;
+                    while (event = libinput_get_event(li)) {
+                        enum libinput_event_type type = libinput_event_get_type(event);
+                        processTouchEvent((struct libinput_event_touch*)event, type);
+                        libinput_event_destroy(event);
+                    }
+                }
+            } else if(fds[i].revents & (POLLERR | POLLHUP)) {
+                isListening = 0;
+            }
         }
     }
-    libinput_unref(li);
-    close(dummyFD);
+    return 0;
 }
 /**
  * Starting listening for and processing gestures.
@@ -172,9 +173,14 @@ static void listenForGestures(struct libinput* li) {
  * @param num length of paths array
  * @param grab rather to get an exclusive grab on the device
  */
-void startGestures(const char** paths, int num, bool grab) {
+int startGestures(const char** paths, int num, bool grab) {
     struct libinput* li = paths && num ? createPathInterface(paths, num, grab) : createUdevInterface(grab);
-    listenForGestures(li);
+    if (li) {
+        int ret = listenForGestures(li);
+        libinput_unref(li);
+        return ret;
+    }
+    return 1;
 }
 
 int __attribute__((weak)) main(int argc, char* const argv[]) {
@@ -184,5 +190,5 @@ int __attribute__((weak)) main(int argc, char* const argv[]) {
         i++;
         grab = 1;
     }
-    startGestures((const char**)(argv + 1), argc - i, grab);
+    return startGestures((const char**)(argv + 1), argc - i, grab);
 }
